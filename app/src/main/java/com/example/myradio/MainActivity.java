@@ -1,7 +1,7 @@
 package com.example.myradio;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+//import android.core.content.ContextCompat;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -52,11 +52,17 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private MediaControllerCompat.Callback mMediaControllerCompatCallback = new MediaControllerCompat.Callback() {
-        @Override
+        /*@Override
         public void onSessionReady() {
             Log.e("jimmy","onPlaybackStateChanged: onSessionReady ");
             super.onSessionReady();
 
+        }*/
+
+
+        @Override
+        public void onSessionDestroyed() {
+            super.onSessionDestroyed();
         }
 
         @Override

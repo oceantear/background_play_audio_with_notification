@@ -19,8 +19,15 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.ResultReceiver;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.MediaBrowserServiceCompat;
 import android.support.v4.media.MediaMetadataCompat;
+import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
@@ -28,13 +35,13 @@ import android.util.Log;
 import android.view.KeyEvent;
 //import android.support.v4.media.MediaBrowserServiceCompat;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
-import androidx.core.content.ContextCompat;
-import androidx.media.MediaBrowserServiceCompat;
-import androidx.media.session.MediaButtonReceiver;
+//import android.annotation.NonNull;
+//import androidx.annotation.Nullable;
+//import androidx.core.app.NotificationCompat;
+//import androidx.core.app.NotificationManagerCompat;
+//import androidx.core.content.ContextCompat;
+//import androidx.media.MediaBrowserServiceCompat;
+//import androidx.media.session.MediaButtonReceiver;
 
 import java.io.IOException;
 import java.util.List;
@@ -312,7 +319,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, creatCh.getChannelId());
         Notification notification = notificationBuilder
-                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
                                 .setMediaSession(mMediaSessionCompat.getSessionToken())
                                 .setShowActionsInCompactView(0, 1, 2)
                                 .setShowCancelButton(true)
@@ -366,7 +373,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, creatCh.getChannelId());
         Notification notification = notificationBuilder
-                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
                         .setMediaSession(mMediaSessionCompat.getSessionToken())
                         .setShowActionsInCompactView(0, 1, 2)
                         .setShowCancelButton(true)
@@ -515,9 +522,9 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.e("MediaPlayerService","onStartCommand() Action :"+intent.getAction());
-        Log.e("MediaPlayerService","onStartCommand() flags :"+flags);
-        Log.e("MediaPlayerService","onStartCommand() startId :"+startId);
+        //Log.e("MediaPlayerService","onStartCommand() Action :"+intent.getAction());
+        //Log.e("MediaPlayerService","onStartCommand() flags :"+flags);
+        //Log.e("MediaPlayerService","onStartCommand() startId :"+startId);
         MediaButtonReceiver.handleIntent(mMediaSessionCompat, intent);
         return super.onStartCommand(intent, flags, startId);
     }
