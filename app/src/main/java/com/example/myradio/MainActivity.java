@@ -1,5 +1,6 @@
 package com.example.myradio;
 
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 //import android.core.content.ContextCompat;
 
@@ -14,7 +15,9 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mPlayPauseButton;
     private Button mRewindButton;
     private Button mNextButton;
+    private SeekBar mSeekBar;
     /**
      * SourceType 0: AM/FM
      * 1: device path music
@@ -120,8 +124,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRadio.add(FM);
-        mRadio.add(Video);
+        //mRadio.add(FM);
+        //mRadio.add(Video);
+
+        String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
+        Log.e("jimmy","path :" +path);
+
+        File directory = new File(path);
+        File[] files = directory.listFiles();
+        Log.d("Files", "Size: "+ files.length);
+        for (int i = 0; i < files.length; i++)
+        {
+            mRadio.add(path+files[i].getName());
+            Log.d("Files", "FileName:" + files[i].getName());
+        }
+
+
 
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MediaPlayerService.class),
                 mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
@@ -187,6 +205,23 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        /*mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });*/
 
     }
 

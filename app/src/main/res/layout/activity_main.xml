@@ -32,7 +32,8 @@
         android:background="@drawable/ic_fast_rewind_black_24dp"
         app:layout_constraintEnd_toStartOf="@+id/guideline2"
         app:layout_constraintStart_toEndOf="@+id/pre_bt"
-        app:layout_constraintTop_toTopOf="@+id/pre_bt" />
+        app:layout_constraintTop_toTopOf="@+id/pre_bt"
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/play_bt"
@@ -58,7 +59,8 @@
         android:background="@drawable/ic_fast_forward_black_24dp"
         app:layout_constraintEnd_toStartOf="@+id/next_bt"
         app:layout_constraintStart_toEndOf="@+id/guideline3"
-        app:layout_constraintTop_toTopOf="@+id/pre_bt" />
+        app:layout_constraintTop_toTopOf="@+id/pre_bt"
+        android:visibility="gone"/>
 
     <Button
         android:id="@+id/next_bt"
@@ -74,7 +76,7 @@
         app:layout_constraintTop_toTopOf="@+id/pre_bt" />
 
     <SeekBar
-        android:id="@+id/progress"
+        android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"

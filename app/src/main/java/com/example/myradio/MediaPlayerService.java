@@ -71,6 +71,8 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private String mSubText;
     private int mSmallIcon;
     private int mLargeIcon;
+    private int mQueueIndex = -1;
+
 
     private List<String> DataSource = new ArrayList<>();
 
@@ -85,6 +87,71 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
     //MediaSession receive media controller command
     private MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
+
+        /*@Override
+        public void onPlayFromSearch(String query, Bundle extras) {
+            super.onPlayFromSearch(query, extras);
+            Log.e("jimmy","onPlayFromSearch: "+query);
+            try {
+                mMediaPlayer.setDataSource(query);
+                mMediaPlayer.prepare();
+                mMediaSessionCompat.setActive(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
+            }
+        }
+
+        @Override
+        public void onPlayFromUri(Uri uri, Bundle extras) {
+            super.onPlayFromUri(uri, extras);
+
+        @Override
+        public void onCommand(String command, Bundle extras, ResultReceiver cb) {
+            Log.e("jimmy","onPlayFromMediaId");
+            super.onCommand(command, extras, cb);
+            if( COMMAND_EXAMPLE.equalsIgnoreCase(command) ) {
+                //Custom command here
+            }else if(COMMAND_SET_RESOURCE.equals(command)){
+
+
+            }
+        }
+
+        @Override
+        public void onPlayFromMediaId(String mediaId, Bundle extras) {
+            Log.e("jimmy","onPlayFromMediaId");
+            super.onPlayFromMediaId(mediaId, extras);
+
+            try {
+                AssetFileDescriptor afd = getResources().openRawResourceFd(Integer.valueOf(mediaId));
+                if( afd == null ) {
+                    return;
+                }
+
+                try {
+                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+
+                } catch( IllegalStateException e ) {
+                    mMediaPlayer.release();
+                    initMediaPlayer();
+                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+                }
+
+                afd.close();
+                initMediaSessionMetadata();
+
+            } catch (IOException e) {
+                return;
+            }
+
+            try {
+                mMediaPlayer.prepare();
+            } catch (IOException e) {}
+
+            //Work with extras here if you want
+        }
+        }*/
 
         @Override
         public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
@@ -126,53 +193,40 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         public void onPrepare() {
             super.onPrepare();
             Log.e("jimmy","onPrepare: ");
-        }
-
-
-        @Override
-        public void onPrepareFromSearch(String query, Bundle extras) {
-            super.onPrepareFromSearch(query, extras);
-            Log.e("jimmy","onPrepareFromSearch: "+query);
-
-            //mMediaSessionCompat.setActive(true);
-            //setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-            //mMediaPlayer.start();
-
-        }
-
-        @Override
-        public void onPlayFromSearch(String query, Bundle extras) {
-            super.onPlayFromSearch(query, extras);
-            Log.e("jimmy","onPlayFromSearch: "+query);
             try {
-                mMediaPlayer.setDataSource(query);
+                mMediaPlayer.reset();
+                mMediaPlayer.setDataSource(DataSource.get(mQueueIndex));
                 mMediaPlayer.prepare();
-                mMediaSessionCompat.setActive(true);
             } catch (IOException e) {
-                e.printStackTrace();
-                Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
+                Log.e("jimmy", "onPrepare error :" + e.toString());
             }
-        }
-
-        @Override
-        public void onPlayFromUri(Uri uri, Bundle extras) {
-            super.onPlayFromUri(uri, extras);
         }
 
         @Override
         public void onPlay() {
             Log.e("jimmy","MediaPlayerService onPlay()");
             super.onPlay();
-            if( !successfullyRetrievedAudioFocus() ) {
-                return;
-            }
 
-            if(!mMediaPlayer.isPlaying()) {
-                mMediaPlayer.start();
-                mMediaSessionCompat.setActive(true);
-                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+            try {
+                if (!successfullyRetrievedAudioFocus()) {
+                    return;
+                }
 
-                showPausedNotification();
+                if (mQueueIndex < 0 || (mQueueIndex > DataSource.size() - 1)) {
+                    Log.e("jimmy", "mQueueIndex out of bound");
+                    return;
+                } else
+                    onPrepare();
+
+                if (!mMediaPlayer.isPlaying()) {
+                    mMediaPlayer.start();
+                    mMediaSessionCompat.setActive(true);
+                    setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+
+                    //showPausedNotification();
+                }
+            }catch (Exception e) {
+                Log.e("jimmy", "onPlay error :" + e.toString());
             }
             //mMediaPlayer.start();
         }
@@ -189,74 +243,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 stopForeground(false);
                 showPlayingNotification();
             }
-        }
-
-        @Override
-        public void onPlayFromMediaId(String mediaId, Bundle extras) {
-            Log.e("jimmy","onPlayFromMediaId");
-            super.onPlayFromMediaId(mediaId, extras);
-
-            try {
-                AssetFileDescriptor afd = getResources().openRawResourceFd(Integer.valueOf(mediaId));
-                if( afd == null ) {
-                    return;
-                }
-
-                try {
-                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-
-                } catch( IllegalStateException e ) {
-                    mMediaPlayer.release();
-                    initMediaPlayer();
-                    mMediaPlayer.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
-                }
-
-                afd.close();
-                initMediaSessionMetadata();
-
-            } catch (IOException e) {
-                return;
-            }
-
-            try {
-                mMediaPlayer.prepare();
-            } catch (IOException e) {}
-
-            //Work with extras here if you want
-        }
-
-        @Override
-        public void onCommand(String command, Bundle extras, ResultReceiver cb) {
-            Log.e("jimmy","onPlayFromMediaId");
-            super.onCommand(command, extras, cb);
-            if( COMMAND_EXAMPLE.equalsIgnoreCase(command) ) {
-                //Custom command here
-            }else if(COMMAND_SET_RESOURCE.equals(command)){
-
-
-            }
-        }
-
-        @Override
-        public void onCustomAction(String action, Bundle extras) {
-            Log.e("jimmy","onCustomAction");
-            String t = extras.getString("type");
-
-            super.onCustomAction(action, extras);
-            if(COMMAND_SET_RESOURCE.equals(action)){
-                if(t.equals("radio")) {
-                    DataSource.addAll(extras.getStringArrayList("song"));
-                    try {
-                        mMediaPlayer.setDataSource(DataSource.get(0));
-                        mMediaPlayer.prepare();
-                        mMediaSessionCompat.setActive(true);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
-                    }
-                }
-            }
-
         }
 
         @Override
@@ -279,15 +265,53 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onSkipToNext() {
-            Log.e("jimmy","onSkipToNext");
+            Log.e("jimmy","onSkipToNext :"+mQueueIndex);
             //super.onSkipToNext();
-            mMediaPlayer.nex
+            if(mMediaPlayer.isPlaying())
+                mMediaPlayer.pause();
+
+            if(mQueueIndex >= (DataSource.size() - 1))
+                Log.e("jimmmy","true");
+            else
+                Log.e("jimmmy","false");
+            mQueueIndex = (mQueueIndex >= (DataSource.size() - 1)) ? 0 :  (++mQueueIndex);
+            Log.e("jimmy","mQueueIndex : "+mQueueIndex);
+            onPlay();
         }
 
         @Override
         public void onSkipToPrevious() {
             Log.e("jimmy","onSkipToPrevious");
             //super.onSkipToPrevious();
+            if(mMediaPlayer.isPlaying())
+                mMediaPlayer.pause();
+
+            mQueueIndex = (mQueueIndex == 0) ? DataSource.size() -1 :  (--mQueueIndex);
+            Log.e("jimmy","mQueueIndex : "+mQueueIndex);
+            onPlay();
+        }
+
+        @Override
+        public void onCustomAction(String action, Bundle extras) {
+            Log.e("jimmy","onCustomAction");
+            String t = extras.getString("type");
+
+            super.onCustomAction(action, extras);
+            if(COMMAND_SET_RESOURCE.equals(action)){
+                if(t.equals("radio")) {
+                    DataSource.addAll(extras.getStringArrayList("song"));
+                    mQueueIndex = 0;
+                    try {
+                        mMediaPlayer.setDataSource(DataSource.get(mQueueIndex));
+                        mMediaPlayer.prepare();
+                        mMediaSessionCompat.setActive(true);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
+                    }
+                }
+            }
+
         }
     };
 
@@ -332,6 +356,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
             @Override
             public void onPrepared(MediaPlayer mp) {
                 Log.e("MediaPlayService","MediaPlayer onPrepared()");
+
                 mMediaPlayer.start();
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                 //showPlayingNotification();
