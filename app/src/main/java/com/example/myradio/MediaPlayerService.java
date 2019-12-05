@@ -44,15 +44,19 @@ import android.view.KeyEvent;
 //import androidx.media.session.MediaButtonReceiver;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import static android.view.KeyEvent.KEYCODE_MEDIA_NEXT;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PAUSE;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PLAY;
+import static android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS;
+import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD;
+import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD;
+import static com.example.myradio.MediaStyleHelper.COMMAND_EXAMPLE;
+import static com.example.myradio.MediaStyleHelper.COMMAND_SET_RESOURCE;
 
 public class MediaPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener {
-
-    public static final String COMMAND_EXAMPLE = "command_example";
-
 
     private MediaPlayer mMediaPlayer;
     private MediaSessionCompat mMediaSessionCompat;
@@ -62,6 +66,13 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private NotificationCompat.Action mPrevAction;
     private static final int REQUEST_CODE = 501;
     public static final int NOTIFICATION_ID = 412;
+    private String mMediaTitle;
+    private String mMediaContent;
+    private String mSubText;
+    private int mSmallIcon;
+    private int mLargeIcon;
+
+    private List<String> DataSource = new ArrayList<>();
 
     private BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
         @Override
@@ -72,6 +83,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         }
     };
 
+    //MediaSession receive media controller command
     private MediaSessionCompat.Callback mMediaSessionCallback = new MediaSessionCompat.Callback() {
 
         @Override
@@ -80,15 +92,29 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
             KeyEvent event =   (KeyEvent)mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
             Log.e("jimmy","event :"+event);
             if(event.getKeyCode() == KEYCODE_MEDIA_PLAY){
+                Log.e("jimmy","service  key event : play");
                 if(mMediaPlayer.isPlaying()){
                     mMediaPlayer.pause();
                     showPausedNotification();
                 }
             }else if(event.getKeyCode() == KEYCODE_MEDIA_PAUSE){
+                Log.e("jimmy","service  key event : pause");
                 /*if(!mMediaPlayer.isPlaying()) {
                     mMediaPlayer.start();
                     showPlayingNotification();
                 }*/
+                onPause();
+            }else if( event.getKeyCode() == KEYCODE_MEDIA_SKIP_FORWARD){
+                Log.e("jimmy","service  key event : skip forward");
+
+            }else if ( event.getKeyCode() == KEYCODE_MEDIA_SKIP_BACKWARD){
+                Log.e("jimmy","service  key event : skip backward");
+            }else if (event.getKeyCode() == KEYCODE_MEDIA_NEXT){
+                Log.e("jimmy","service  key event : next");
+                onSkipToNext();
+            }else if(event.getKeyCode() == KEYCODE_MEDIA_PREVIOUS){
+                Log.e("jimmy","service  key event : previous");
+                onSkipToPrevious();
             }
 
 
@@ -131,12 +157,11 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         @Override
         public void onPlayFromUri(Uri uri, Bundle extras) {
             super.onPlayFromUri(uri, extras);
-
         }
 
         @Override
         public void onPlay() {
-            Log.e("jimmy","onPlay");
+            Log.e("jimmy","MediaPlayerService onPlay()");
             super.onPlay();
             if( !successfullyRetrievedAudioFocus() ) {
                 return;
@@ -154,7 +179,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public void onPause() {
-            Log.e("MediaPlayerService","onPause");
+            Log.e("jimmy","MediaPlayerService onPause()");
 
             //super.onPause();
 
@@ -206,7 +231,32 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
             super.onCommand(command, extras, cb);
             if( COMMAND_EXAMPLE.equalsIgnoreCase(command) ) {
                 //Custom command here
+            }else if(COMMAND_SET_RESOURCE.equals(command)){
+
+
             }
+        }
+
+        @Override
+        public void onCustomAction(String action, Bundle extras) {
+            Log.e("jimmy","onCustomAction");
+            String t = extras.getString("type");
+
+            super.onCustomAction(action, extras);
+            if(COMMAND_SET_RESOURCE.equals(action)){
+                if(t.equals("radio")) {
+                    DataSource.addAll(extras.getStringArrayList("song"));
+                    try {
+                        mMediaPlayer.setDataSource(DataSource.get(0));
+                        mMediaPlayer.prepare();
+                        mMediaSessionCompat.setActive(true);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
+                    }
+                }
+            }
+
         }
 
         @Override
@@ -215,12 +265,43 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
             super.onSeekTo(pos);
         }
 
+        @Override
+        public void onFastForward() {
+            Log.e("jimmy","onFastForward");
+            //super.onFastForward();
+        }
+
+        @Override
+        public void onRewind() {
+            Log.e("jimmy","onRewind");
+            //super.onRewind();
+        }
+
+        @Override
+        public void onSkipToNext() {
+            Log.e("jimmy","onSkipToNext");
+            //super.onSkipToNext();
+            mMediaPlayer.nex
+        }
+
+        @Override
+        public void onSkipToPrevious() {
+            Log.e("jimmy","onSkipToPrevious");
+            //super.onSkipToPrevious();
+        }
     };
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.e("jimmy","Service onCreate");
+        //default string
+        mMediaTitle = "Album";
+        mMediaContent = "Artist";
+        mSubText = "Song Name";
+        //default Icons
+        mSmallIcon = R.drawable.ic_stat_image_audiotrack;
+        mLargeIcon = R.drawable.album_jazz_blues;
         initMediaPlayer();
         initMediaSession();
         initNoisyReceiver();
@@ -255,6 +336,13 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                 //showPlayingNotification();
                 showPausedNotification();
+            }
+        });
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+
+                return false;
             }
         });
     }
@@ -327,16 +415,16 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                                         MediaButtonReceiver.buildMediaButtonPendingIntent(
                                                 this, PlaybackStateCompat.ACTION_STOP)))
                 .setColor(ContextCompat.getColor(this, R.color.notification_bg))
-                .setSmallIcon(R.drawable.ic_stat_image_audiotrack)
-                .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), R.drawable.album_jazz_blues))
+                .setSmallIcon(mSmallIcon)
+                .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), mLargeIcon))
                 .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
                         this, PlaybackStateCompat.ACTION_STOP))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
                 .setContentIntent(createContentIntent())
-                .setContentTitle("Album")
-                .setContentText("Artist")
-                .setSubText("Song Name")
+                .setContentTitle(mMediaTitle)
+                .setContentText(mMediaContent)
+                .setSubText(mSubText)
                 .addAction(mPrevAction)
                 .addAction(mPauseAction)
                 .addAction(mNextAction)
@@ -381,16 +469,16 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                                         this, PlaybackStateCompat.ACTION_STOP)))
                 .setColor(ContextCompat.getColor(this, R.color.notification_bg))
-                .setSmallIcon(R.drawable.ic_stat_image_audiotrack)
-                .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), R.drawable.album_jazz_blues))
+                .setSmallIcon(mSmallIcon)
+                .setLargeIcon(BitmapFactory.decodeResource(this.getResources(), mLargeIcon))
                 .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
                         this, PlaybackStateCompat.ACTION_STOP))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
                 .setContentIntent(createContentIntent())
-                .setContentTitle("Album")
-                .setContentText("Artist")
-                .setSubText("Song Name")
+                .setContentTitle(mMediaTitle)
+                .setContentText(mMediaContent)
+                .setSubText(mSubText)
                 .addAction(mPrevAction)
                 .addAction(mPlayAction)
                 .addAction(mNextAction)

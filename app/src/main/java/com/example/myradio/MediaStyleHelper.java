@@ -17,6 +17,11 @@ import android.support.v4.media.session.PlaybackStateCompat;
  * Helper APIs for constructing MediaStyle notifications
  */
 public class MediaStyleHelper {
+
+
+    public static final String COMMAND_EXAMPLE = "command_example";
+    public static final String COMMAND_SET_RESOURCE = "setResource";
+
     /**
      * Build a notification using the information from the given media session. Makes heavy use
      * of {@link MediaMetadataCompat#getDescription()} to extract the appropriate information.
