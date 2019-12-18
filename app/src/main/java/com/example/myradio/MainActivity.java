@@ -62,16 +62,14 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("jimmy", "mMediaBrowserCompatConnectionCallback  onConnected()");
                 mMediaControllerCompat = new MediaControllerCompat(MainActivity.this, mMediaBrowserCompat.getSessionToken());
                 mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
-                //setSupportMediaController(mMediaControllerCompat);
                 MediaControllerCompat.setMediaController(MainActivity.this, mMediaControllerCompat);
-                //getSupportMediaController().getTransportControls().playFromMediaId(String.valueOf(R.raw.warner_tautz_off_broadway), null);
                 //TODO: set media resource
                 Bundle b = new Bundle();
                 b.putString("type","radio");
                 b.putStringArrayList("song",mRadio);
                 mMediaControllerCompat.getTransportControls().sendCustomAction( COMMAND_SET_RESOURCE, b);
-                mCurrentState = PlaybackStateCompat.STATE_PAUSED;
-                //mMediaControllerCompat.getMediaController(MainActivity.this).getTransportControls().playFromMediaId();
+                mCurrentState = PlaybackStateCompat.STATE_PLAYING;
+                mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
 
             } catch (RemoteException e) {
                 Log.e("jimmy", "browser connected error :" + e.toString());
@@ -106,13 +104,15 @@ public class MainActivity extends AppCompatActivity {
                 case PlaybackStateCompat.STATE_PLAYING: {
                     Log.e("jimmy", "onPlaybackStateChanged : playing" + PlaybackStateCompat.STATE_PLAYING);
                     mCurrentState = PlaybackStateCompat.STATE_PLAYING;
-                    mPlayPauseButton.setPressed(true);
+                    //mPlayPauseButton.setPressed(true);
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
-                    Log.e("jimmy", "onPlaybackStateChanged  pause:" + PlaybackStateCompat.STATE_PAUSED);
+                    Log.e("jimmy", "onPlaybackStateChanged  pause :" + PlaybackStateCompat.STATE_PAUSED);
                     mCurrentState = PlaybackStateCompat.STATE_PAUSED;
-                    mPlayPauseButton.setPressed(false);
+                    //mPlayPauseButton.setPressed(false);
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                     break;
                 }
             }
@@ -165,14 +165,14 @@ public class MainActivity extends AppCompatActivity {
         mPreButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mMediaControllerCompat.getTransportControls().skipToPrevious();
             }
         });
 
         mPlayPauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.e("jimmy", "play/pause click :" + mCurrentState);
+                Log.e("jimmy", "play/pause click : " + mCurrentState);
                 if (mCurrentState == PlaybackStateCompat.STATE_NONE) {
 
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PAUSED) {
@@ -180,12 +180,12 @@ public class MainActivity extends AppCompatActivity {
                     //mMediaControllerCompat.getTransportControls().playFromSearch(FM, null);
                     mMediaControllerCompat.getTransportControls().play();
                     //mCurrentState = PlaybackStateCompat.STATE_PLAYING;
-                    mPlayPauseButton.setPressed(true);
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PLAYING) {
                     Log.e("jimmy","play -> pause");
                     mMediaControllerCompat.getTransportControls().pause();
                     //mCurrentState = PlaybackStateCompat.STATE_PAUSED;
-                    mPlayPauseButton.setPressed(false);
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                 }
             }
         });
@@ -202,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
         mNextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mMediaControllerCompat.getTransportControls().skipToNext();
             }
         });
 
@@ -229,6 +229,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mMediaControllerCompat = MediaControllerCompat.getMediaController(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(mMediaControllerCompat != null)
+            mMediaControllerCompat.unregisterCallback(mMediaControllerCompatCallback);
+
+        if(mMediaBrowserCompat != null  && mMediaBrowserCompat.isConnected()) {
+            mMediaBrowserCompat.disconnect();
+        }
     }
 
     @Override

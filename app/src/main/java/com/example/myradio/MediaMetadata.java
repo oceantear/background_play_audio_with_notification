@@ -4,11 +4,11 @@ import java.io.Serializable;
 
 public class MediaMetadata implements Serializable {
 
-    /**
+    /** Notification style
      *      ---------------------------------------------------------------------------------
-     *     \ Small icon   \   AppName  \  subText                           \
-     *     \ Title                                                  Larger icon      \
-     *     \ MediaContent                                                           \
+     *     | Small icon   \   AppName  \  subText                                           |
+     *     | Title                                                  Larger icon                         |
+     *     | MediaContent                                                                              |
      *     ----------------------------------------------------------------------------------
      * */
 
