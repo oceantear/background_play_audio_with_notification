@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -34,12 +35,14 @@ public class MainActivity extends AppCompatActivity {
     private MediaBrowserCompat mMediaBrowserCompat;
     private MediaControllerCompat mMediaControllerCompat;
 
+    private TextView mTitle;
     private Button mPreButton;
     private Button mForwardButton;
     private Button mPlayPauseButton;
     private Button mRewindButton;
     private Button mNextButton;
     private SeekBar mSeekBar;
+
     /**
      * SourceType 0: AM/FM
      * 1: device path music
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     //private String AM = "rtsp://flv.ccdntech.com/live/_definst_/vod256_Live/am";
 
     private ArrayList<String> mRadio = new ArrayList<>();
+    private String mMode;
 
     private MediaBrowserCompat.ConnectionCallback mMediaBrowserCompatConnectionCallback = new MediaBrowserCompat.ConnectionCallback() {
 
@@ -123,23 +127,29 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mTitle = findViewById(R.id.title);
 
-        //mRadio.add(FM);
-        //mRadio.add(Video);
-
-        String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
-        Log.e("jimmy","path :" +path);
-
-        File directory = new File(path);
-        File[] files = directory.listFiles();
-        Log.d("Files", "Size: "+ files.length);
-        for (int i = 0; i < files.length; i++)
-        {
-            mRadio.add(path+files[i].getName());
-            Log.d("Files", "FileName:" + files[i].getName());
+        mMode = getIntent().getStringExtra("mode");
+        if(mMode.equals("local_music")){
+            mTitle.setText(getString(R.string.bt_local_music));
+            String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
+            Log.e("jimmy","path :" +path);
+            File directory = new File(path);
+            File[] files = directory.listFiles();
+            Log.d("Files", "Size: "+ files.length);
+            for (int i = 0; i < files.length; i++)
+            {
+                mRadio.add(path+files[i].getName());
+                Log.d("Files", "FileName:" + files[i].getName());
+            }
+        }else if(mMode.equals("remote_rtmp")){
+            mTitle.setText(getString(R.string.bt_remote_rtmp));
+            mRadio.add(FM);
+            mRadio.add(Video);
+        }else if(mMode.equals("local_movie")){
+            //ToDo : find some movie
+            mTitle.setText(getString(R.string.bt_local_movie));
         }
-
-
 
         mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MediaPlayerService.class),
                 mMediaBrowserCompatConnectionCallback, getIntent().getExtras());

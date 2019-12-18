@@ -5,4 +5,8 @@
     <string name="label_pause">Pause</string>
     <string name="label_previous">Previous track</string>
     <string name="label_next">Next track</string>
+
+    <string name="bt_local_music">本地音樂</string>
+    <string name="bt_remote_rtmp">遠程rtmp</string>
+    <string name="bt_local_movie">本地影片</string>
 </resources>

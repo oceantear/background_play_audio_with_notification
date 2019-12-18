@@ -1,83 +1,45 @@
 package com.example.myradio;
 
 import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.AssetFileDescriptor;
-import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.session.PlaybackState;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.PowerManager;
-import android.os.ResultReceiver;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
-import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
-//import android.support.v4.media.MediaBrowserServiceCompat;
-
-//import android.annotation.NonNull;
-//import androidx.annotation.Nullable;
-//import androidx.core.app.NotificationCompat;
-//import androidx.core.app.NotificationManagerCompat;
-//import androidx.core.content.ContextCompat;
-//import androidx.media.MediaBrowserServiceCompat;
-//import androidx.media.session.MediaButtonReceiver;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import static android.view.KeyEvent.KEYCODE_MEDIA_NEXT;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PAUSE;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PLAY;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS;
 import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD;
 import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD;
-import static com.example.myradio.MediaStyleHelper.COMMAND_EXAMPLE;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_RESOURCE;
 import static com.example.myradio.NotificationMgr.NOTIFICATION_ID;
-import static com.example.myradio.NotificationMgr.REQUEST_CODE;
 
 public class MediaPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener {
 
     private MediaPlayer mMediaPlayer;
     private MediaSessionCompat mMediaSessionCompat;
-    private NotificationCompat.Action mPlayAction;
-    private NotificationCompat.Action mPauseAction;
-    private NotificationCompat.Action mNextAction;
-    private NotificationCompat.Action mPrevAction;
     private NotificationMgr mNotificationMgr;
-    //private static final int REQUEST_CODE = 501;
-    //public static final int NOTIFICATION_ID = 412;
-    private String mMediaTitle;
-    private String mMediaContent;
-    private String mSubText;
-    private int mSmallIcon;
-    private int mLargeIcon;
     private int mQueueIndex = -1;
-
-
     private List<String> DataSource = new ArrayList<>();
     private String mPlayingSource = null;
 
@@ -268,12 +230,12 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         super.onCreate();
         Log.e("jimmy","Service onCreate");
         //default string
-        mMediaTitle = "Album";
-        mMediaContent = "Artist";
-        mSubText = "Song Name";
+        //mMediaTitle = "Album";
+        //mMediaContent = "Artist";
+        //mSubText = "Song Name";
         //default Icons
-        mSmallIcon = R.drawable.ic_stat_image_audiotrack;
-        mLargeIcon = R.drawable.album_jazz_blues;
+        //mSmallIcon = R.drawable.ic_stat_image_audiotrack;
+        //mLargeIcon = R.drawable.album_jazz_blues;
         mNotificationMgr = new NotificationMgr(this);
         initMediaPlayer();
         initMediaSession();
@@ -369,12 +331,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
         mMediaSessionCompat.setCallback(mMediaSessionCallback);
 
-
-        /*Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        mediaButtonIntent.setClass(this, MediaButtonReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, mediaButtonIntent, 0);
-        mMediaSessionCompat.setMediaButtonReceiver(pendingIntent);*/
-
         setSessionToken(mMediaSessionCompat.getSessionToken());
         mMediaSessionCompat.setActive(true);
     }
@@ -390,22 +346,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
     }
 
-    private void initMediaSessionMetadata() {
-        MediaMetadataCompat.Builder metadataBuilder = new MediaMetadataCompat.Builder();
-        //Notification icon in card
-        metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-        metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-
-        //lock screen icon for pre lollipop
-        metadataBuilder.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher));
-        metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE, "Display Title");
-        metadataBuilder.putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, "Display Subtitle");
-        metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, 1);
-        metadataBuilder.putLong(MediaMetadataCompat.METADATA_KEY_NUM_TRACKS, 1);
-
-        mMediaSessionCompat.setMetadata(metadataBuilder.build());
-    }
-
     private boolean successfullyRetrievedAudioFocus() {
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
@@ -414,7 +354,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
         return result == AudioManager.AUDIOFOCUS_GAIN;
     }
-
 
     //Not important for general audio service, required for class
     @Nullable
@@ -473,9 +412,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //Log.e("MediaPlayerService","onStartCommand() Action :"+intent.getAction());
-        //Log.e("MediaPlayerService","onStartCommand() flags :"+flags);
-        //Log.e("MediaPlayerService","onStartCommand() startId :"+startId);
         MediaButtonReceiver.handleIntent(mMediaSessionCompat, intent);
         return super.onStartCommand(intent, flags, startId);
     }

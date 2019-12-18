@@ -6,6 +6,17 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <TextView android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:textSize="20dp"
+        android:gravity="center"
+        android:background="@android:color/darker_gray"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="我是標題"/>
+
     <Button
         android:id="@+id/pre_bt"
         android:layout_width="0dp"
