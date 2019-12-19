@@ -114,6 +114,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
+        public void onExtrasChanged(Bundle extras) {
+            super.onExtrasChanged(extras);
+            Log.e("jimmy","onExtrasChanged");
+            String tmp = extras.getString("title");
+            mTitle.setText(extras.getString("title"));
+            mContent.setText(extras.getString("content"));
+
+        }
+
+        @Override
         public void onSessionDestroyed() {
             super.onSessionDestroyed();
         }

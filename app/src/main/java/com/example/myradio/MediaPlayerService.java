@@ -113,7 +113,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         public void onPlay() {
             Log.e("jimmy","MediaPlayerService onPlay()");
             super.onPlay();
-
             try {
                 if (!successfullyRetrievedAudioFocus()) {
                     Log.e("jimmy","retrieve audio focus fail");
@@ -128,8 +127,10 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                         onPrepare();
                 }
 
+
                 if (!mMediaPlayer.isPlaying()) {
                     mMediaPlayer.start();
+
                     mMediaSessionCompat.setActive(true);
                     setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
@@ -287,6 +288,12 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
             @Override
             public void onPrepared(MediaPlayer mp) {
                 Log.e("MediaPlayService","MediaPlayer onPrepared()");
+                //change Title / content on activity UI
+                Bundle b = new Bundle();
+                b.putString("title",DataSource.get(mQueueIndex).getTitle());
+                b.putString("content",DataSource.get(mQueueIndex).getMediaContent());
+                b.putString("error","noError");
+                mMediaSessionCompat.setExtras(b);
                 mMediaPlayer.start();
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
                 showPausedNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
