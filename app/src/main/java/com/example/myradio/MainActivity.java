@@ -1,6 +1,9 @@
 package com.example.myradio;
 
+import android.media.MediaMetadataRetriever;
+import android.net.Uri;
 import android.os.Environment;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v7.app.AppCompatActivity;
 //import android.core.content.ContextCompat;
 
@@ -19,9 +22,11 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.example.myradio.MediaStyleHelper.COMMAND_SET_REPEAT;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_RESOURCE;
 
 
@@ -36,12 +41,16 @@ public class MainActivity extends AppCompatActivity {
     private MediaControllerCompat mMediaControllerCompat;
 
     private TextView mTitle;
+    private TextView mContent;
     private Button mPreButton;
     private Button mForwardButton;
     private Button mPlayPauseButton;
     private Button mRewindButton;
     private Button mNextButton;
+    private Button mRepeatButton;
     private SeekBar mSeekBar;
+    private List<MediaMetadata> mMediaMetadataList = new ArrayList<>();
+    private List<Integer> mLargeIcon = new ArrayList<>();
 
     /**
      * SourceType 0: AM/FM
@@ -56,8 +65,15 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<String> mRadio = new ArrayList<>();
     private String mMode;
+    private boolean mRepeat = false;
+
 
     private MediaBrowserCompat.ConnectionCallback mMediaBrowserCompatConnectionCallback = new MediaBrowserCompat.ConnectionCallback() {
+
+        @Override
+        public void onConnectionSuspended() {
+            super.onConnectionSuspended();
+        }
 
         @Override
         public void onConnected() {
@@ -67,13 +83,14 @@ public class MainActivity extends AppCompatActivity {
                 mMediaControllerCompat = new MediaControllerCompat(MainActivity.this, mMediaBrowserCompat.getSessionToken());
                 mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
                 MediaControllerCompat.setMediaController(MainActivity.this, mMediaControllerCompat);
-                //TODO: set media resource
-                Bundle b = new Bundle();
+
+                /*Bundle b = new Bundle();
                 b.putString("type","radio");
                 b.putStringArrayList("song",mRadio);
+                b.putBoolean("repeat",mRepeat);
                 mMediaControllerCompat.getTransportControls().sendCustomAction( COMMAND_SET_RESOURCE, b);
                 mCurrentState = PlaybackStateCompat.STATE_PLAYING;
-                mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
+                mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));*/
 
             } catch (RemoteException e) {
                 Log.e("jimmy", "browser connected error :" + e.toString());
@@ -90,6 +107,11 @@ public class MainActivity extends AppCompatActivity {
 
         }*/
 
+        @Override
+        public void onMetadataChanged(MediaMetadataCompat metadata) {
+            super.onMetadataChanged(metadata);
+            Log.e("jimmy","onMetadataChanged");
+        }
 
         @Override
         public void onSessionDestroyed() {
@@ -98,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            Log.e("jimmy", "onPlaybackStateChanged ");
+            Log.e("jimmy", "onPlaybackStateChanged : "+state);
             super.onPlaybackStateChanged(state);
             if (state == null) {
                 return;
@@ -119,6 +141,10 @@ public class MainActivity extends AppCompatActivity {
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                     break;
                 }
+                case PlaybackStateCompat.ERROR_CODE_APP_ERROR:
+                    Log.e("jimmy", "onPlaybackStateChanged  error :" + PlaybackStateCompat.ERROR_CODE_APP_ERROR);
+                    mContent.setText("內部錯誤，請檢查網路or source正確");
+                    break;
             }
         }
     };
@@ -126,35 +152,47 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i("jimmy","onCreate");
         setContentView(R.layout.activity_main);
         mTitle = findViewById(R.id.title);
+        mContent = findViewById(R.id.content);
+
+        //init large icon
+        initLargeIcon();
 
         mMode = getIntent().getStringExtra("mode");
         if(mMode.equals("local_music")){
             mTitle.setText(getString(R.string.bt_local_music));
             String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
-            Log.e("jimmy","path :" +path);
+            //Log.e("jimmy","path :" +path);
             File directory = new File(path);
             File[] files = directory.listFiles();
-            Log.d("Files", "Size: "+ files.length);
-            for (int i = 0; i < files.length; i++)
-            {
+            //Log.d("Files", "Size: "+ files.length);
+            for (int i = 0; i < files.length; i++) {
                 mRadio.add(path+files[i].getName());
-                Log.d("Files", "FileName:" + files[i].getName());
+                Log.e("jimmy", "FileName:" + files[i].getName());
+                getMediaInfo(path+files[i].getName());
             }
+
         }else if(mMode.equals("remote_rtmp")){
             mTitle.setText(getString(R.string.bt_remote_rtmp));
-            mRadio.add(FM);
-            mRadio.add(Video);
+            //mRadio.add(FM);
+            //mRadio.add(Video);
+            mMediaMetadataList.add(new MediaMetadata("音樂", "廣播1 title" ,"副標題", FM , R.drawable.ic_stat_image_audiotrack, mLargeIcon.get(0)));
+            mMediaMetadataList.add(new MediaMetadata("音樂", "廣播2 title" ,"副標題", Video , R.drawable.ic_stat_image_audiotrack, mLargeIcon.get(1)));
         }else if(mMode.equals("local_movie")){
             //ToDo : find some movie
             mTitle.setText(getString(R.string.bt_local_movie));
         }
 
-        mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MediaPlayerService.class),
-                mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
 
-        mMediaBrowserCompat.connect();
+
+        if(mMediaBrowserCompat == null) {
+            mMediaBrowserCompat = new MediaBrowserCompat(this, new ComponentName(this, MediaPlayerService.class),
+                    mMediaBrowserCompatConnectionCallback, getIntent().getExtras());
+
+            mMediaBrowserCompat.connect();
+        }
         mCurrentState = PlaybackStateCompat.STATE_NONE;
 
         mPlayPauseButton = (Button) findViewById(R.id.play_bt);
@@ -162,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
         mNextButton = (Button) findViewById(R.id.next_bt);
         mRewindButton = (Button) findViewById(R.id.rewind_bt);
         mForwardButton = (Button) findViewById(R.id.froward_bt);
+        mRepeatButton = findViewById(R.id.repeat_bt);
 
 
         mRewindButton.setOnClickListener(new View.OnClickListener() {
@@ -184,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Log.e("jimmy", "play/pause click : " + mCurrentState);
                 if (mCurrentState == PlaybackStateCompat.STATE_NONE) {
-
+                    setDataSourceToService();
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PAUSED) {
                     Log.e("jimmy","pause -> play");
                     //mMediaControllerCompat.getTransportControls().playFromSearch(FM, null);
@@ -194,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PLAYING) {
                     Log.e("jimmy","play -> pause");
                     mMediaControllerCompat.getTransportControls().pause();
-                    //mCurrentState = PlaybackStateCompat.STATE_PAUSED;
+                    mCurrentState = PlaybackStateCompat.STATE_PAUSED;
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                 }
             }
@@ -233,6 +273,21 @@ public class MainActivity extends AppCompatActivity {
             }
         });*/
 
+        mRepeatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mRepeat = !mRepeat;
+                if(mRepeat) {
+                    mRepeatButton.setBackground(getResources().getDrawable(R.drawable.ic_repeat_black_24dp));
+                }else {
+                    mRepeatButton.setBackground(getResources().getDrawable(R.drawable.ic_not_repeat_black_24dp));
+                }
+                Bundle b = new Bundle();
+                b.putBoolean("repeat", mRepeat);
+                mMediaControllerCompat.getTransportControls().sendCustomAction(COMMAND_SET_REPEAT, b);
+            }
+        });
+
     }
 
     @Override
@@ -244,12 +299,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if(mMediaControllerCompat != null)
+        Log.i("jimmy","onStop");
+        /*if(mMediaControllerCompat != null)
             mMediaControllerCompat.unregisterCallback(mMediaControllerCompatCallback);
 
         if(mMediaBrowserCompat != null  && mMediaBrowserCompat.isConnected()) {
             mMediaBrowserCompat.disconnect();
-        }
+        }*/
     }
 
     @Override
@@ -259,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
 
         if(mMediaControllerCompat != null) {
             mMediaControllerCompat.unregisterCallback(mMediaControllerCompatCallback);
+            //service will take care player destroy
             /*if (mMediaControllerCompat.getPlaybackState().getState() == PlaybackStateCompat.STATE_PLAYING) {
                 Log.e("jimmy","onDestroy pause()");
                 mMediaControllerCompat.getTransportControls().pause();
@@ -267,5 +324,51 @@ public class MainActivity extends AppCompatActivity {
         if(mMediaBrowserCompat != null  && mMediaBrowserCompat.isConnected()) {
             mMediaBrowserCompat.disconnect();
         }
+    }
+
+    void initLargeIcon(){
+        if(mLargeIcon == null) mLargeIcon = new ArrayList<>();
+        mLargeIcon.add(R.drawable.album_jazz_blues);
+        mLargeIcon.add(R.drawable.album_youtube_audio_library_rock_2);
+        mLargeIcon.add(R.drawable.sun_piano);
+        mLargeIcon.add(R.drawable.sea_piano);
+    }
+
+    void getMediaInfo(String path){
+        Uri uri = Uri.parse(path);
+        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+        mmr.setDataSource(this,uri);
+        String durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+        String title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+        int millSecond = Integer.parseInt(durationStr);
+        Log.e("jimmy","song title : "+ title + ", duration :" +millSecond);
+        if(mMediaMetadataList == null) mMediaMetadataList = new ArrayList<>();
+
+            /** Notification style
+             *             this.mTitle = mTitle;
+             *             this.mMediaContent = mMediaContent;
+             *             this.mSubTitle = mSubTitle;
+             *             this.mSmallIcon = mSmallIcon;
+             *             this.mLargerIcon = mLargerIcon;
+             *      ---------------------------------------------------------------------------------
+             *     | Small icon   \   AppName  \  subText                                           |
+             *     | Title                                                  Larger icon                         |
+             *     | MediaContent                                                                              |
+             *     ----------------------------------------------------------------------------------
+             * */
+       int icon = -1;
+       icon = mLargeIcon.get(mMediaMetadataList.size());
+
+       mMediaMetadataList.add(new MediaMetadata("音樂", title ,"副標題", path , R.drawable.ic_stat_image_audiotrack, icon));
+
+    }
+
+    void setDataSourceToService(){
+        Bundle b = new Bundle();
+        b.putString("type","radio");
+        b.putSerializable("song", (Serializable) mMediaMetadataList);
+        b.putBoolean("repeat",mRepeat);
+        mMediaControllerCompat.getTransportControls().sendCustomAction( COMMAND_SET_RESOURCE, b);
+        mCurrentState = PlaybackStateCompat.STATE_PLAYING;
     }
 }

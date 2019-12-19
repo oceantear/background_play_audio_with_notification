@@ -15,54 +15,64 @@ public class MediaMetadata implements Serializable {
     private String mTitle;
     private String mMediaContent;
     private String mSubTitle;
+    private String mSourcePath;
     private int mSmallIcon;
     private int mLargerIcon;
 
-    public MediaMetadata(String mTitle, String mMediaContent, String mSubTitle, int mSmallIcon, int mLargerIcon) {
-        this.mTitle = mTitle;
-        this.mMediaContent = mMediaContent;
-        this.mSubTitle = mSubTitle;
-        this.mSmallIcon = mSmallIcon;
-        this.mLargerIcon = mLargerIcon;
+    public MediaMetadata(String title, String mediaContent, String subTitle, String sourcePath, int smallIcon, int largerIcon) {
+        this.mTitle = title;
+        this.mMediaContent = mediaContent;
+        this.mSubTitle = subTitle;
+        this.mSourcePath = sourcePath;
+        this.mSmallIcon = smallIcon;
+        this.mLargerIcon = largerIcon;
     }
 
-    public String getmTitle() {
+    public String getTitle() {
         return mTitle;
     }
 
-    public void setmTitle(String mTitle) {
+    public void setTitle(String mTitle) {
         this.mTitle = mTitle;
     }
 
-    public String getmMediaContent() {
+    public String getMediaContent() {
         return mMediaContent;
     }
 
-    public void setmMediaContent(String mMediaContent) {
+    public void setMediaContent(String mMediaContent) {
         this.mMediaContent = mMediaContent;
     }
 
-    public String getmSubTitle() {
+    public String getSubTitle() {
         return mSubTitle;
     }
 
-    public void setmSubTitle(String mSubTitle) {
+    public void setSubTitle(String mSubTitle) {
         this.mSubTitle = mSubTitle;
     }
 
-    public int getmSmallIcon() {
+    public String getSourcePath() {
+        return mSourcePath;
+    }
+
+    public void setSourcePath(String mPath) {
+        this.mSourcePath = mPath;
+    }
+
+    public int getSmallIcon() {
         return mSmallIcon;
     }
 
-    public void setmSmallIcon(int mSmallIcon) {
+    public void setSmallIcon(int mSmallIcon) {
         this.mSmallIcon = mSmallIcon;
     }
 
-    public int getmLargerIcon() {
+    public int getLargerIcon() {
         return mLargerIcon;
     }
 
-    public void setmLargerIcon(int mLargerIcon) {
+    public void setLargerIcon(int mLargerIcon) {
         this.mLargerIcon = mLargerIcon;
     }
 }

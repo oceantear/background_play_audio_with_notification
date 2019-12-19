@@ -13,6 +13,14 @@ import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
+/** Notification style
+ *      ---------------------------------------------------------------------------------
+ *     | Small icon   \   AppName  \  subText                                           |
+ *     | Title                                                  Larger icon                         |
+ *     | MediaContent                                                                              |
+ *     ----------------------------------------------------------------------------------
+ * */
+
 
 public class NotificationMgr {
 
@@ -27,8 +35,10 @@ public class NotificationMgr {
     private String mMediaTitle = "Album";
     private String mMediaContent = "Artist";
     private String mSubText = "Song Name";
-    private int mSmallIcon = R.drawable.ic_stat_image_audiotrack;
-    private int mLargeIcon = R.drawable.album_jazz_blues;
+    private int mDefaultSmallIcon = R.drawable.ic_stat_image_audiotrack;
+    private int mDefaultLargeIcon = R.drawable.album_jazz_blues;
+    private int mSmallIcon ;
+    private int mLargeIcon ;
     public static final int REQUEST_CODE = 501;
     public static final int NOTIFICATION_ID = 412;
 
@@ -70,7 +80,20 @@ public class NotificationMgr {
 
     public NotificationManager getNotificationManager(){return mNotificationManager;}
 
-    public Notification getNotification(int status  , MediaSessionCompat.Token token){
+    public Notification getNotification(int status ,MediaSessionCompat.Token token, String title, String mediaContent, int largerIcon, int smallIcon){
+
+        if(title != null)
+            mMediaTitle = title;
+        if(mediaContent != null)
+            mMediaContent = mediaContent;
+        if(largerIcon > 0)
+            mLargeIcon = largerIcon;
+        else
+            mLargeIcon = mDefaultSmallIcon;
+        if(smallIcon > 0)
+            mSmallIcon = smallIcon;
+        else
+            mSmallIcon = mDefaultSmallIcon;
 
         CreateChannel creatCh = new CreateChannel(mService);
 
@@ -85,7 +108,7 @@ public class NotificationMgr {
         notificationBuilder
                 .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
                         .setMediaSession(token)
-                        .setShowActionsInCompactView(0, 1, 2)
+                        .setShowActionsInCompactView(0, 1, 2) //up to 5 action
                         .setShowCancelButton(true)
                         .setCancelButtonIntent(
                                 MediaButtonReceiver.buildMediaButtonPendingIntent(
