@@ -18,29 +18,30 @@ import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.KeyEvent;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD;
 import static android.view.KeyEvent.KEYCODE_MEDIA_NEXT;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PAUSE;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PLAY;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS;
-import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD;
-import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD;
+import static android.view.KeyEvent.KEYCODE_MEDIA_REWIND;
 import static android.view.KeyEvent.KEYCODE_MEDIA_STOP;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_REPEAT;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_RESOURCE;
 import static com.example.myradio.NotificationMgr.NOTIFICATION_ID;
 
-public class MediaPlayerService extends MediaBrowserServiceCompat implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener {
+public class MediaPlayerService extends MediaBrowserServiceCompat implements AudioManager.OnAudioFocusChangeListener {
 
     private MediaPlayer mMediaPlayer;
     private MediaSessionCompat mMediaSessionCompat;
     private NotificationMgr mNotificationMgr;
     private int mQueueIndex = -1;
-    private List<MediaMetadata> DataSource = new ArrayList<>();
+    private List<MediaMetadata> mDataSource = new ArrayList<>();
     private String mPlayingSource = null;
     private boolean isRepeat = false;
     private AudioManager mAudioManager;
@@ -48,14 +49,13 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.e("jimmy","become noisy");
+            LogUtil.e("jimmy", "become noisy");
             //detect headphone unplugged , pause music
-            if( mMediaPlayer != null && mMediaPlayer.isPlaying() ) {
+            if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                //if(mAudioManager != null) mAudioManager.dispatchMediaKeyEvent(new KeyEvent( KeyEvent.ACTION_DOWN , KEYCODE_MEDIA_PAUSE));
-                showPlayingNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
-                        DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
+                showPlayingNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                        mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
             }
         }
     };
@@ -65,206 +65,300 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
         @Override
         public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
-            Log.e("jimmy","onMediaButtonEvent intent():"+mediaButtonEvent);
-            KeyEvent event =   (KeyEvent)mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
-            Log.e("jimmy","event :"+event);
-            if(event.getKeyCode() == KEYCODE_MEDIA_PLAY){
-                Log.e("jimmy","service  key event : play");
-                //if(mMediaPlayer.isPlaying()){
-                //    mMediaPlayer.pause();
-                //    showPausedNotification();
-                //}
-                //onPlay();
-            }else if(event.getKeyCode() == KEYCODE_MEDIA_PAUSE){
-                Log.e("jimmy","service  key event : pause");
-                //onPause();
-                //showPlayingNotification();
-                //setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-            }else if( event.getKeyCode() == KEYCODE_MEDIA_SKIP_FORWARD){
-                Log.e("jimmy","service  key event : skip forward");
-
-            }else if ( event.getKeyCode() == KEYCODE_MEDIA_SKIP_BACKWARD){
-                Log.e("jimmy","service  key event : skip backward");
-            }else if (event.getKeyCode() == KEYCODE_MEDIA_NEXT){
-                Log.e("jimmy","service  key event : next");
-                onSkipToNext();
-                //showPlayingNotification();
-            }else if(event.getKeyCode() == KEYCODE_MEDIA_PREVIOUS){
-                Log.e("jimmy","service  key event : previous");
-                onSkipToPrevious();
-                //showPlayingNotification();
-            }else if(event.getKeyCode() == KEYCODE_MEDIA_STOP){
-                onStop();
+            LogUtil.e("jimmy", "onMediaButtonEvent intent():" + mediaButtonEvent);
+            KeyEvent event = (KeyEvent) mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+            LogUtil.e("jimmy", "event :" + event);
+            if (event.getKeyCode() == KEYCODE_MEDIA_PLAY) {
+                LogUtil.e("jimmy", "service  key event : play");
+                if (mMediaPlayer == null)
+                    initMediaPlayer();
+                onMPlay();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_PAUSE) {
+                LogUtil.e("jimmy", "service  key event : pause");
+                onMPause();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_FAST_FORWARD) {
+                LogUtil.e("jimmy", "service  key event : fast forward");
+                onFastForward();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_REWIND) {
+                LogUtil.e("jimmy", "service  key event : rewind");
+                onRewind();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_NEXT) {
+                LogUtil.e("jimmy", "service  key event : next");
+                onMSkipToNext();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_PREVIOUS) {
+                LogUtil.e("jimmy", "service  key event : previous");
+                onMSkipToPrevious();
+            } else if (event.getKeyCode() == KEYCODE_MEDIA_STOP) {
+                onMStop();
             }
 
-            //return super.onMediaButtonEvent(mediaButtonEvent);
-            return super.onMediaButtonEvent(mediaButtonEvent);
+            return true;
         }
 
         @Override
         public void onPrepare() {
-            //super.onPrepare();
-            Log.e("jimmy","onPrepare: ");
-            try {
-                mPlayingSource = DataSource.get(mQueueIndex).getSourcePath();
-                mMediaPlayer.reset();
-                mMediaPlayer.setDataSource(mPlayingSource);
-                mMediaPlayer.prepare();
-            } catch (IOException e) {
-                Log.e("jimmy", "onPrepare error :" + e.toString());
-            }
+            onMPause();
         }
 
         @Override
         public void onPlay() {
-            Log.e("jimmy","MediaPlayerService onPlay()");
-            //super.onPlay();
-            try {
-                if (!successfullyRetrievedAudioFocus()) {
-                    Log.e("jimmy","retrieve audio focus fail");
-                    return;
-                }
-
-                if(mPlayingSource == null) {
-                    if (mQueueIndex < 0 || (mQueueIndex > DataSource.size() - 1)) {
-                        Log.e("jimmy", "mQueueIndex out of bound");
-                        return;
-                    } else
-                        onPrepare();
-                }
-
-
-                if (!mMediaPlayer.isPlaying()) {
-                    mMediaPlayer.start();
-
-                    mMediaSessionCompat.setActive(true);
-                    setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-
-                    showPausedNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
-                            DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
-                }else
-                    Log.e("jimmy","play not playing");
-            }catch (Exception e) {
-                Log.e("jimmy", "onPlay error :" + e.toString());
-            }
-            //mMediaPlayer.start();
+            LogUtil.e("jimmy", "MediaPlayerService onPlay()");
+            onMPlay();
         }
 
         @Override
         public void onPause() {
-            Log.e("jimmy","MediaPlayerService onPause()");
-            //super.onPause();
-
-            if( mMediaPlayer.isPlaying() ) {
-                mMediaPlayer.pause();
-                setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                //stopForeground(false);
-                showPlayingNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
-                        DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
-            }
+            LogUtil.e("jimmy", "MediaPlayerService onPause()");
+            onMPause();
         }
-
 
         @Override
         public void onSeekTo(long pos) {
-            Log.e("jimmy","onSeekTo");
-            super.onSeekTo(pos);
+            LogUtil.e("jimmy", "onSeekTo");
         }
 
         @Override
         public void onFastForward() {
-            Log.e("jimmy","onFastForward");
-            //super.onFastForward();
+            LogUtil.e("jimmy", "onFastForward");
         }
 
         @Override
         public void onRewind() {
-            Log.e("jimmy","onRewind");
-            //super.onRewind();
+            LogUtil.e("jimmy", "onRewind");
         }
 
         @Override
         public void onSkipToNext() {
-            Log.e("jimmy","onSkipToNext :"+mQueueIndex);
-            //super.onSkipToNext();
-            mPlayingSource = null;
-            if(mMediaPlayer.isPlaying())
-                mMediaPlayer.pause();
-
-            if(mQueueIndex >= (DataSource.size() - 1))
-                Log.e("jimmy","end of play list");
-            else
-                Log.e("jimmy","not end of play list");
-            mQueueIndex = (mQueueIndex >= (DataSource.size() - 1)) ? 0 :  (++mQueueIndex);
-            //mPlayingSource = DataSource.get(mQueueIndex);
-            Log.e("jimmy","mQueueIndex : "+mQueueIndex);
-            onPlay();
+            LogUtil.e("jimmy", "onSkipToNext :" + mQueueIndex);
+            onMSkipToNext();
         }
 
         @Override
         public void onSkipToPrevious() {
-            Log.e("jimmy","onSkipToPrevious");
-            //super.onSkipToPrevious();
-            mPlayingSource = null;
-            if(mMediaPlayer.isPlaying())
-                mMediaPlayer.pause();
-
-            mQueueIndex = (mQueueIndex == 0) ? DataSource.size() -1 :  (--mQueueIndex);
-            //mPlayingSource = DataSource.get(mQueueIndex);
-            Log.e("jimmy","mQueueIndex : "+mQueueIndex);
-            onPlay();
+            LogUtil.e("jimmy", "onSkipToPrevious");
+            onMSkipToPrevious();
         }
 
         @Override
         public void onStop() {
-            //super.onStop();
-            Log.e("jimmy","onStop");
-            mMediaPlayer.stop();
-            //setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-            //unregisterReceiver(mNoisyReceiver);
-            mMediaPlayer.reset();
-            //mMediaPlayer.release();
-            stopForeground(true);
-            //stopSelf();
+            LogUtil.e("jimmy", "onStop");
+            onMStop();
         }
 
         @Override
         public void onCustomAction(String action, Bundle extras) {
-            Log.e("jimmy","onCustomAction");
+
+            LogUtil.e("jimmy", "onCustomAction");
             String t = extras.getString("type");
-            List<MediaMetadata> tmp = (List <MediaMetadata>)extras.getSerializable("song");
+            List<MediaMetadata> tmp = (List<MediaMetadata>) extras.getSerializable("song");
             super.onCustomAction(action, extras);
-            if(COMMAND_SET_RESOURCE.equals(action)){
-                if(t.equals("radio")) {
-                    DataSource.addAll(tmp);
+            if (COMMAND_SET_RESOURCE.equals(action)) {
+                if (t.equals("radio")) {
+                    mDataSource.addAll(tmp);
                     mQueueIndex = 0;
+                    mPlayingSource = null;
                     try {
-                        mMediaPlayer.setDataSource(DataSource.get(mQueueIndex).getSourcePath());
-                        mMediaPlayer.prepare();
+                        if (mMediaPlayer == null)
+                            initMediaPlayer();
+                        onMPlay();
                         mMediaSessionCompat.setActive(true);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
-                        Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
+                        LogUtil.e("jimmy", "onPlayFromSearch.error : " + e.toString());
                         setMediaPlaybackErrorState(PlaybackStateCompat.ERROR_CODE_APP_ERROR);
                     }
                 }
-            }else if(COMMAND_SET_REPEAT.equals(action)){
+            } else if (COMMAND_SET_REPEAT.equals(action)) {
                 isRepeat = extras.getBoolean("repeat");
             }
 
         }
     };
 
+    private void onMPrepare() {
+        LogUtil.e("jimmy", "onPrepare: ");
+        try {
+            mPlayingSource = mDataSource.get(mQueueIndex).getSourcePath();
+            mMediaPlayer.reset();
+            mMediaPlayer.setDataSource(mPlayingSource);
+            mMediaPlayer.prepare();
+        } catch (IOException e) {
+            LogUtil.e("jimmy", "onPrepare error :" + e.toString());
+        }
+    }
+
+    private void onMPlay() {
+
+        LogUtil.e("jimmy", "MediaPlayerService onPlay()");
+        try {
+            if (!successfullyRetrievedAudioFocus()) {
+                LogUtil.e("jimmy", "retrieve audio focus fail");
+                return;
+            }
+
+            if (mPlayingSource == null) {
+                if (mQueueIndex < 0 || (mQueueIndex > mDataSource.size() - 1)) {
+                    LogUtil.e("jimmy", "mQueueIndex out of bound");
+                    return;
+                } else
+                    onMPrepare();
+            }
+
+            if (!mMediaPlayer.isPlaying()) {
+                mMediaPlayer.start();
+
+                mMediaSessionCompat.setActive(true);
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+
+                showPausedNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                        mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
+            } else
+                LogUtil.e("jimmy", "play not playing");
+        } catch (Exception e) {
+            LogUtil.e("jimmy", "onPlay error :" + e.toString());
+        }
+    }
+
+    private void onMPause() {
+        LogUtil.e("jimmy", "MediaPlayerService onPause()");
+
+        if (mMediaPlayer.isPlaying()) {
+            mMediaPlayer.pause();
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+            showPlayingNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                    mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
+        }
+    }
+
+    private void onMSkipToPrevious() {
+        LogUtil.e("jimmy", "onSkipToPrevious");
+
+        mPlayingSource = null;
+        if (mMediaPlayer.isPlaying())
+            mMediaPlayer.pause();
+        //first of list, seek to the last one media
+        mQueueIndex = (mQueueIndex == 0) ? mDataSource.size() - 1 : (--mQueueIndex);
+
+        LogUtil.e("jimmy", "mQueueIndex : " + mQueueIndex);
+        onMPlay();
+    }
+
+    private void onMSkipToNext() {
+        LogUtil.e("jimmy", "onSkipToNext :" + mQueueIndex);
+
+        mPlayingSource = null;
+        if (mMediaPlayer.isPlaying())
+            mMediaPlayer.pause();
+
+        //end ot list, seek to the first one media
+        mQueueIndex = (mQueueIndex >= (mDataSource.size() - 1)) ? 0 : (++mQueueIndex);
+
+        LogUtil.e("jimmy", "mQueueIndex : " + mQueueIndex);
+        onMPlay();
+    }
+
+    private void onMStop() {
+
+        LogUtil.e("jimmy", "onStop");
+        mMediaPlayer.stop();
+        //setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+        setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        //unregisterReceiver(mNoisyReceiver);
+        mMediaPlayer.reset();
+        stopForeground(true);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.e("jimmy","Service onCreate");
+        LogUtil.e("jimmy", "Service onCreate");
         mNotificationMgr = new NotificationMgr(this);
         mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         initMediaPlayer();
         initMediaSession();
         initNoisyReceiver();
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        LogUtil.e("jimmy", "onTaskRemoved");
+        stopSelf();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        LogUtil.e("jimmy", "service destroy()");
+
+        if (mAudioManager != null) mAudioManager.abandonAudioFocus(this);
+        unregisterReceiver(mNoisyReceiver);
+        mMediaSessionCompat.release();
+        if (mMediaPlayer != null && mMediaPlayer.isPlaying())
+            mMediaPlayer.stop();
+        if (mMediaPlayer != null) mMediaPlayer.release();
+
+    }
+
+    private void initMediaPlayer() {
+
+        mMediaPlayer = new MediaPlayer();
+        mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mMediaPlayer.setVolume(1.0f, 1.0f);
+
+        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mp) {
+                LogUtil.e("MediaPlayService", "init MediaPlayer ");
+                mMediaPlayer.start();
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+                showPausedNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                        mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
+            }
+        });
+
+        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                LogUtil.e("jimmy", "media onError");
+                return false;
+            }
+        });
+
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                LogUtil.e("MediaPlayService", "MediaPlayer onCompletion()");
+                if (isRepeat) {
+                    LogUtil.i("jimmy", " repeat, play next song");
+                    //tricky, simulate media key event
+                    if (mAudioManager != null)
+                        mAudioManager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KEYCODE_MEDIA_NEXT));
+                } else {
+                    showPlayingNotification(mDataSource.get(mQueueIndex).getTitle() + "(播放完畢)", mDataSource.get(mQueueIndex).getSubTitle() + "(播放完畢)",
+                            mDataSource.get(mQueueIndex).getMediaContent() + "播放完畢", -1, -1);
+                    if (mAudioManager != null)
+                        mAudioManager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KEYCODE_MEDIA_PAUSE));
+                    setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                }
+            }
+        });
+    }
+
+    private void initMediaSession() {
+        LogUtil.e("jimmy", "initMediaSession");
+
+        mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService");
+
+        mMediaSessionCompat.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
+                MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS |
+                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+
+        mMediaSessionCompat.setCallback(mMediaSessionCallback);
+
+        setSessionToken(mMediaSessionCompat.getSessionToken());
+        mMediaSessionCompat.setActive(true);
     }
 
     private void initNoisyReceiver() {
@@ -273,114 +367,28 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         registerReceiver(mNoisyReceiver, filter);
     }
 
-    @Override
-    public void onTaskRemoved(Intent rootIntent) {
-        super.onTaskRemoved(rootIntent);
-        Log.e("jimmy","onTaskRemoved");
-        stopSelf();
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Log.e("jimmy","service destroy()");
-        //AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        if(mAudioManager != null) mAudioManager.abandonAudioFocus(this);
-        unregisterReceiver(mNoisyReceiver);
-        mMediaSessionCompat.release();
-        if(mMediaPlayer != null && mMediaPlayer.isPlaying())
-            mMediaPlayer.stop();
-        if(mMediaPlayer != null) mMediaPlayer.release();
-
-    }
-
-    private void initMediaPlayer() {
-        mMediaPlayer = new MediaPlayer();
-        mMediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mMediaPlayer.setVolume(1.0f, 1.0f);
-        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-            @Override
-            public void onPrepared(MediaPlayer mp) {
-                Log.e("MediaPlayService","init MediaPlayer ");
-                //change Title / content on activity UI
-                Bundle b = new Bundle();
-                b.putString("title",DataSource.get(mQueueIndex).getTitle());
-                b.putString("content",DataSource.get(mQueueIndex).getMediaContent());
-                b.putString("error","noError");
-                mMediaSessionCompat.setExtras(b);
-                mMediaPlayer.start();
-                setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
-                showPausedNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
-                        DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
-            }
-        });
-        mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(MediaPlayer mp, int what, int extra) {
-                Log.e("jimmy","media onError");
-                return false;
-            }
-        });
-
-        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                Log.e("MediaPlayService","MediaPlayer onCompletion()");
-                if(isRepeat){
-                    Log.i("jimmy"," repeat, play next song");
-                    //tricky, simulate media key event
-                    if(mAudioManager != null) mAudioManager.dispatchMediaKeyEvent(new KeyEvent( KeyEvent.ACTION_DOWN , KEYCODE_MEDIA_NEXT));
-                }else {
-                    showPlayingNotification("播放完畢", "播放完畢", -1, -1);
-                    if(mAudioManager != null) mAudioManager.dispatchMediaKeyEvent(new KeyEvent( KeyEvent.ACTION_DOWN , KEYCODE_MEDIA_PAUSE));
-                    setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                }
-            }
-        });
-    }
-
-    private void showPausedNotification(String title ,String mediaContent , int largerIcon , int smallIcon) {
+    private void showPausedNotification(String title, String subTitle, String mediaContent, int largerIcon, int smallIcon) {
 
         ContextCompat.startForegroundService(
                 MediaPlayerService.this,
                 new Intent(MediaPlayerService.this, MediaPlayerService.class));
 
-        Notification notification = mNotificationMgr.getNotification(PlaybackStateCompat.STATE_PAUSED , getSessionToken() ,title , mediaContent , largerIcon , smallIcon);
-        mNotificationMgr.getNotificationManager().notify(NOTIFICATION_ID , notification);
+        Notification notification = mNotificationMgr.getNotification(PlaybackStateCompat.STATE_PAUSED, getSessionToken(), title, subTitle, mediaContent, largerIcon, smallIcon);
+        mNotificationMgr.getNotificationManager().notify(NOTIFICATION_ID, notification);
         startForeground(NOTIFICATION_ID, notification);
     }
 
-    private void showPlayingNotification(String title ,String mediaContent , int largerIcon , int smallIcon) {
+    private void showPlayingNotification(String title, String subTitle, String mediaContent, int largerIcon, int smallIcon) {
 
         stopForeground(false);
-        Notification notification = mNotificationMgr.getNotification(PlaybackStateCompat.STATE_PLAYING , getSessionToken() ,title , mediaContent , largerIcon , smallIcon);
-        mNotificationMgr.getNotificationManager().notify(NOTIFICATION_ID,notification);
-    }
-
-
-
-
-    private void initMediaSession() {
-        Log.e("jimmy","initMediaSession");
-
-        //ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
-        //mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService", mediaButtonReceiver, null);
-        mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService");
-
-        //mMediaSessionCompat.setFlags( MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-        //        MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS |
-        //        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS );
-
-        mMediaSessionCompat.setCallback(mMediaSessionCallback);
-
-        setSessionToken(mMediaSessionCompat.getSessionToken());
-        mMediaSessionCompat.setActive(true);
+        Notification notification = mNotificationMgr.getNotification(PlaybackStateCompat.STATE_PLAYING, getSessionToken(), title, subTitle, mediaContent, largerIcon, smallIcon);
+        mNotificationMgr.getNotificationManager().notify(NOTIFICATION_ID, notification);
     }
 
     private void setMediaPlaybackState(int state) {
+
         PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
-        if( state == PlaybackStateCompat.STATE_PLAYING ) {
+        if (state == PlaybackStateCompat.STATE_PLAYING) {
             playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PAUSE);
         } else {
             playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY);
@@ -389,11 +397,10 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
     }
 
-    private void setMediaPlaybackErrorState(int state){
-        PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
+    private void setMediaPlaybackErrorState(int state) {
 
-        //playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
-        playbackstateBuilder.setErrorMessage( state, "");
+        PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
+        playbackstateBuilder.setErrorMessage(state, "");
         mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
     }
 
@@ -405,18 +412,18 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         return result == AudioManager.AUDIOFOCUS_GAIN;
     }
 
-    //Not important for general audio service, required for class
+    //is called to gain the authority to access the Media that the MediaBrowserService provides
     @Nullable
     @Override
     public BrowserRoot onGetRoot(@NonNull String clientPackageName, int clientUid, @Nullable Bundle rootHints) {
-        if(TextUtils.equals(clientPackageName, getPackageName())) {
+        if (TextUtils.equals(clientPackageName, getPackageName())) {
             return new BrowserRoot(getString(R.string.app_name), null);
         }
 
         return null;
     }
 
-    //Not important for general audio service, required for class
+    //is called by the subscribe method of the MediaBrowser and will return all child MediaItems
     @Override
     public void onLoadChildren(@NonNull String parentId, @NonNull Result<List<MediaBrowserCompat.MediaItem>> result) {
         result.sendResult(null);
@@ -424,11 +431,19 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onAudioFocusChange(int focusChange) {
-        Log.e("jimmy","audio focus change: "+focusChange);
-        switch( focusChange ) {
+        LogUtil.e("jimmy", "audio focus change: " + focusChange);
+        switch (focusChange) {
+            //stop when another app get audio focus
             case AudioManager.AUDIOFOCUS_LOSS: {
-                if( mMediaPlayer.isPlaying() ) {
+                if (mMediaPlayer.isPlaying()) {
+                    mAudioManager.abandonAudioFocus(this);
                     mMediaPlayer.stop();
+                    mMediaPlayer.release();
+                    mMediaPlayer = null;
+                    mPlayingSource = null;
+                    setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+                    showPlayingNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                            mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
                 }
                 break;
             }
@@ -437,27 +452,20 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 break;
             }
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK: {
-                if( mMediaPlayer != null ) {
+                if (mMediaPlayer != null) {
                     mMediaPlayer.setVolume(0.3f, 0.3f);
                 }
                 break;
             }
             case AudioManager.AUDIOFOCUS_GAIN: {
-                if( mMediaPlayer != null ) {
-                    if( !mMediaPlayer.isPlaying() ) {
+                if (mMediaPlayer != null) {
+                    if (!mMediaPlayer.isPlaying()) {
                         mMediaPlayer.start();
                     }
                     mMediaPlayer.setVolume(1.0f, 1.0f);
                 }
                 break;
             }
-        }
-    }
-
-    @Override
-    public void onCompletion(MediaPlayer mediaPlayer) {
-        if( mMediaPlayer != null ) {
-            mMediaPlayer.release();
         }
     }
 

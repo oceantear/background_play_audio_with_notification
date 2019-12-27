@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
         public void onConnected() {
             super.onConnected();
             try {
-                Log.e("jimmy", "mMediaBrowserCompatConnectionCallback  onConnected()");
+                LogUtil.e("jimmy", "mMediaBrowserCompatConnectionCallback  onConnected()");
                 mMediaControllerCompat = new MediaControllerCompat(MainActivity.this, mMediaBrowserCompat.getSessionToken());
                 mMediaControllerCompat.registerCallback(mMediaControllerCompatCallback);
                 MediaControllerCompat.setMediaController(MainActivity.this, mMediaControllerCompat);
@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));*/
 
             } catch (RemoteException e) {
-                Log.e("jimmy", "browser connected error :" + e.toString());
+                LogUtil.e("jimmy", "browser connected error :" + e.toString());
             }
         }
     };
@@ -110,13 +110,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onMetadataChanged(MediaMetadataCompat metadata) {
             super.onMetadataChanged(metadata);
-            Log.e("jimmy","onMetadataChanged");
+            LogUtil.e("jimmy","onMetadataChanged");
         }
 
         @Override
         public void onExtrasChanged(Bundle extras) {
             super.onExtrasChanged(extras);
-            Log.e("jimmy","onExtrasChanged");
+            LogUtil.e("jimmy","onExtrasChanged");
             //String tmp = extras.getString("title");
             mTitle.setText(extras.getString("title"));
             mContent.setText(extras.getString("content"));
@@ -130,7 +130,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onPlaybackStateChanged(PlaybackStateCompat state) {
-            Log.e("jimmy", "onPlaybackStateChanged : "+state);
+            LogUtil.e("jimmy", "onPlaybackStateChanged : "+state);
             super.onPlaybackStateChanged(state);
             if (state == null) {
                 return;
@@ -138,21 +138,22 @@ public class MainActivity extends AppCompatActivity {
 
             switch (state.getState()) {
                 case PlaybackStateCompat.STATE_PLAYING: {
-                    Log.e("jimmy", "onPlaybackStateChanged : playing" + PlaybackStateCompat.STATE_PLAYING);
+                    LogUtil.e("jimmy", "onPlaybackStateChanged : playing" + PlaybackStateCompat.STATE_PLAYING);
                     mCurrentState = PlaybackStateCompat.STATE_PLAYING;
                     //mPlayPauseButton.setPressed(true);
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                     break;
                 }
                 case PlaybackStateCompat.STATE_PAUSED: {
-                    Log.e("jimmy", "onPlaybackStateChanged  pause :" + PlaybackStateCompat.STATE_PAUSED);
+                    LogUtil.e("jimmy", "onPlaybackStateChanged  pause :" + PlaybackStateCompat.STATE_PAUSED);
                     mCurrentState = PlaybackStateCompat.STATE_PAUSED;
                     //mPlayPauseButton.setPressed(false);
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                     break;
                 }
                 case PlaybackStateCompat.STATE_STOPPED :
-                    Log.e("jimmy", "onPlaybackStateChanged  stopped :" + PlaybackStateCompat.STATE_STOPPED);
+                    LogUtil.e("jimmy", "onPlaybackStateChanged  stopped :" + PlaybackStateCompat.STATE_STOPPED);
+                    mCurrentState = PlaybackStateCompat.STATE_STOPPED;
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                     mContent.setText("播放停止");
                     break;
@@ -161,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
             switch(state.getErrorCode()){
 
                 case PlaybackStateCompat.ERROR_CODE_APP_ERROR:
-                    Log.e("jimmy", "onPlaybackStateChanged  error :" + PlaybackStateCompat.ERROR_CODE_APP_ERROR);
+                    LogUtil.e("jimmy", "onPlaybackStateChanged  error :" + PlaybackStateCompat.ERROR_CODE_APP_ERROR);
                     mContent.setText("內部錯誤，請檢查網路or source正確");
                     break;
             }
@@ -184,13 +185,13 @@ public class MainActivity extends AppCompatActivity {
         if(mMode.equals("local_music")){
             mTitle.setText(getString(R.string.bt_local_music));
             String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
-            Log.e("jimmy","path :" +path);
+            LogUtil.e("jimmy","path :" +path);
             File directory = new File(path);
             File[] files = directory.listFiles();
-            Log.d("Files", "Size: "+ files.length);
+            LogUtil.d("Files", "Size: "+ files.length);
             for (int i = 0; i < files.length; i++) {
                 mRadio.add(path+files[i].getName());
-                Log.e("jimmy", "FileName:" + files[i].getName());
+                LogUtil.e("jimmy", "FileName:" + files[i].getName());
                 getMediaInfo(path+files[i].getName());
             }
 
@@ -241,18 +242,18 @@ public class MainActivity extends AppCompatActivity {
         mPlayPauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.e("jimmy", "play/pause click : " + mCurrentState);
+                LogUtil.e("jimmy", "play/pause click : " + mCurrentState);
                 if (mCurrentState == PlaybackStateCompat.STATE_NONE || mCurrentState == PlaybackStateCompat.STATE_STOPPED) {
                     setDataSourceToService();
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PAUSED) {
-                    Log.e("jimmy","pause -> play");
+                    LogUtil.e("jimmy","pause -> play");
                     //mMediaControllerCompat.getTransportControls().playFromSearch(FM, null);
                     mMediaControllerCompat.getTransportControls().play();
                     //mCurrentState = PlaybackStateCompat.STATE_PLAYING;
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PLAYING) {
-                    Log.e("jimmy","play -> pause");
+                    LogUtil.e("jimmy","play -> pause");
                     mMediaControllerCompat.getTransportControls().pause();
                     mCurrentState = PlaybackStateCompat.STATE_PAUSED;
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
@@ -319,18 +320,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i("jimmy","onStop");
-        /*if(mMediaControllerCompat != null)
-            mMediaControllerCompat.unregisterCallback(mMediaControllerCompatCallback);
+        //Log.i("jimmy","onStop");
 
-        if(mMediaBrowserCompat != null  && mMediaBrowserCompat.isConnected()) {
-            mMediaBrowserCompat.disconnect();
-        }*/
     }
 
     @Override
     protected void onDestroy() {
-        Log.e("jimmy", "Main onDestroy");
+        LogUtil.e("jimmy", "Main onDestroy");
         super.onDestroy();
 
         if(mMediaControllerCompat != null) {
@@ -361,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
         String durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
         String title = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
         int millSecond = Integer.parseInt(durationStr);
-        Log.e("jimmy","song title : "+ title + ", duration :" +millSecond);
+        LogUtil.e("jimmy","song title : "+ title + ", duration :" +millSecond);
         if(mMediaMetadataList == null) mMediaMetadataList = new ArrayList<>();
 
             /** Notification style

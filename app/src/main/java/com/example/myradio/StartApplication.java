@@ -28,8 +28,8 @@ public class StartApplication extends AppCompatActivity {
         mLocalMusic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(StartApplication.this , MainActivity.class);
-                i.putExtra("mode","local_music");
+                Intent i = new Intent(StartApplication.this, MainActivity.class);
+                i.putExtra("mode", "local_music");
                 startActivity(i);
             }
         });
@@ -37,8 +37,8 @@ public class StartApplication extends AppCompatActivity {
         mRemoteRtmp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(StartApplication.this , MainActivity.class);
-                i.putExtra("mode","remote_rtmp");
+                Intent i = new Intent(StartApplication.this, MainActivity.class);
+                i.putExtra("mode", "remote_rtmp");
                 startActivity(i);
             }
         });
@@ -46,8 +46,8 @@ public class StartApplication extends AppCompatActivity {
         mLocalMovie.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent i = new Intent(StartApplication.this , MainActivity.class);
-                i.putExtra("mode","local_movie");
+                Intent i = new Intent(StartApplication.this, MainActivity.class);
+                i.putExtra("mode", "local_movie");
                 startActivity(i);
             }
         });

@@ -13,33 +13,25 @@ import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 
-/** Notification style
- *      ---------------------------------------------------------------------------------
- *     | Small icon   \   AppName  \  subText                                           |
- *     | Title                                                  Larger icon                         |
- *     | MediaContent                                                                              |
- *     ----------------------------------------------------------------------------------
- * */
+/**
+ * Notification style
+ * ---------------------------------------------------------------------------------
+ * | Small icon   \   AppName  \  subText                                           |
+ * | Title                                                  Larger icon                         |
+ * | MediaContent                                                                              |
+ * ----------------------------------------------------------------------------------
+ */
 
 
 public class NotificationMgr {
 
     private MediaPlayerService mService;
     private NotificationManager mNotificationManager;
-
     private NotificationCompat.Action mPlayAction;
     private NotificationCompat.Action mPauseAction;
     private NotificationCompat.Action mNextAction;
     private NotificationCompat.Action mPrevAction;
-
-    private String mMediaTitle = "Album";
-    private String mMediaContent = "Artist";
-    private String mSubText = "Song Name";
-    private int mDefaultSmallIcon = R.drawable.ic_stat_image_audiotrack;
-    private int mDefaultLargeIcon = R.drawable.album_jazz_blues;
-    private int mSmallIcon ;
-    private int mLargeIcon ;
-    public static final int REQUEST_CODE = 501;
+    private static final int REQUEST_CODE = 501;
     public static final int NOTIFICATION_ID = 412;
 
     public NotificationMgr(MediaPlayerService service) {
@@ -82,22 +74,35 @@ public class NotificationMgr {
 
     }
 
-    public NotificationManager getNotificationManager(){return mNotificationManager;}
+    public NotificationManager getNotificationManager() {
+        return mNotificationManager;
+    }
 
-    public Notification getNotification(int status ,MediaSessionCompat.Token token, String title, String mediaContent, int largerIcon, int smallIcon){
+    public Notification getNotification(int status, MediaSessionCompat.Token token, String title, String subTitle, String content, int largerIcon, int smallIcon) {
 
-        if(title != null)
-            mMediaTitle = title;
-        if(mediaContent != null)
-            mMediaContent = mediaContent;
-        if(largerIcon > 0)
-            mLargeIcon = largerIcon;
+        int defaultSmallIcon = R.drawable.ic_stat_image_audiotrack;
+        int defaultLargeIcon = R.drawable.album_jazz_blues;
+        int sIcon;
+        int lIcon;
+        String sText = "Song Name";
+        String mediaTitle = "Album";
+        String mediaContent = "Artist";
+
+        //init media info for notification
+        if (title != null && title.length() > 0)
+            mediaTitle = title;
+        if (content != null && content.length() > 0)
+            mediaContent = content;
+        if (largerIcon > 0)
+            lIcon = largerIcon;
         else
-            mLargeIcon = mDefaultLargeIcon;
-        if(smallIcon > 0)
-            mSmallIcon = smallIcon;
+            lIcon = defaultLargeIcon;
+        if (smallIcon > 0)
+            sIcon = smallIcon;
         else
-            mSmallIcon = mDefaultSmallIcon;
+            sIcon = defaultSmallIcon;
+        if (subTitle != null && subTitle.length() > 0)
+            sText = subTitle;
 
         CreateChannel creatCh = new CreateChannel(mService);
 
@@ -110,41 +115,39 @@ public class NotificationMgr {
                 new NotificationCompat.Builder(mService, creatCh.getChannelId());
         notificationBuilder
                 .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
-                        .setMediaSession(token)
-                        .setShowActionsInCompactView(0, 1, 2) //up to 5 action
-                        .setShowCancelButton(true)
+                                .setMediaSession(token)
+                                .setShowActionsInCompactView(0, 1, 2) //up to 5 action
+                                .setShowCancelButton(true)
                         //.setCancelButtonIntent(
                         //        MediaButtonReceiver.buildMediaButtonPendingIntent(
                         //                mService, PlaybackStateCompat.ACTION_STOP)))
                 )
                 .setColor(ContextCompat.getColor(mService, R.color.notification_bg))
-                .setSmallIcon(mSmallIcon)
-                .setLargeIcon(BitmapFactory.decodeResource(mService.getResources(), mLargeIcon))
+                .setSmallIcon(sIcon)
+                .setLargeIcon(BitmapFactory.decodeResource(mService.getResources(), lIcon))
                 .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
                         mService, PlaybackStateCompat.ACTION_STOP))
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setOnlyAlertOnce(true)
                 .setContentIntent(createContentIntent())
-                .setContentTitle(mMediaTitle)
-                .setContentText(mMediaContent)
-                .setSubText(mSubText);
-
+                .setContentTitle(mediaTitle)
+                .setContentText(mediaContent)
+                .setSubText(sText);
 
 
         notificationBuilder.addAction(mPrevAction);
 
-        if(status == PlaybackStateCompat.STATE_PLAYING) {
+        if (status == PlaybackStateCompat.STATE_PLAYING) {
             notificationBuilder.addAction(mPlayAction);
         }
 
-        if(status == PlaybackStateCompat.STATE_PAUSED) {
+        if (status == PlaybackStateCompat.STATE_PAUSED) {
             notificationBuilder.addAction(mPauseAction);
         }
         notificationBuilder.addAction(mNextAction);
 
         return notificationBuilder.build();
     }
-
 
 
     private PendingIntent createContentIntent() {
@@ -154,7 +157,7 @@ public class NotificationMgr {
                 mService, REQUEST_CODE, openUI, PendingIntent.FLAG_CANCEL_CURRENT);
     }
 
-    public void clearNotification(){
+    public void clearNotification() {
 
     }
 
