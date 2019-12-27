@@ -1,8 +1,12 @@
 package com.example.myradio;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -20,7 +24,6 @@ public class StartApplication extends AppCompatActivity {
         mLocalMusic = findViewById(R.id.local_music);
         mRemoteRtmp = findViewById(R.id.remote_rtmp);
         mLocalMovie = findViewById(R.id.local_movie);
-
 
         mLocalMusic.setOnClickListener(new View.OnClickListener() {
             @Override

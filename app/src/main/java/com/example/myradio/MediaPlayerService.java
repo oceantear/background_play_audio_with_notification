@@ -2,7 +2,6 @@ package com.example.myradio;
 
 import android.app.Notification;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -12,7 +11,6 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
@@ -31,6 +29,7 @@ import static android.view.KeyEvent.KEYCODE_MEDIA_PLAY;
 import static android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS;
 import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_BACKWARD;
 import static android.view.KeyEvent.KEYCODE_MEDIA_SKIP_FORWARD;
+import static android.view.KeyEvent.KEYCODE_MEDIA_STOP;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_REPEAT;
 import static com.example.myradio.MediaStyleHelper.COMMAND_SET_RESOURCE;
 import static com.example.myradio.NotificationMgr.NOTIFICATION_ID;
@@ -41,7 +40,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private MediaSessionCompat mMediaSessionCompat;
     private NotificationMgr mNotificationMgr;
     private int mQueueIndex = -1;
-    //private List<String> DataSource = new ArrayList<>();
     private List<MediaMetadata> DataSource = new ArrayList<>();
     private String mPlayingSource = null;
     private boolean isRepeat = false;
@@ -50,8 +48,14 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private BroadcastReceiver mNoisyReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.e("jimmy","become noisy");
+            //detect headphone unplugged , pause music
             if( mMediaPlayer != null && mMediaPlayer.isPlaying() ) {
                 mMediaPlayer.pause();
+                setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                //if(mAudioManager != null) mAudioManager.dispatchMediaKeyEvent(new KeyEvent( KeyEvent.ACTION_DOWN , KEYCODE_MEDIA_PAUSE));
+                showPlayingNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
+                        DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
             }
         }
     };
@@ -70,11 +74,12 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 //    mMediaPlayer.pause();
                 //    showPausedNotification();
                 //}
+                //onPlay();
             }else if(event.getKeyCode() == KEYCODE_MEDIA_PAUSE){
                 Log.e("jimmy","service  key event : pause");
                 //onPause();
                 //showPlayingNotification();
-                setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                //setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
             }else if( event.getKeyCode() == KEYCODE_MEDIA_SKIP_FORWARD){
                 Log.e("jimmy","service  key event : skip forward");
 
@@ -88,16 +93,17 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 Log.e("jimmy","service  key event : previous");
                 onSkipToPrevious();
                 //showPlayingNotification();
+            }else if(event.getKeyCode() == KEYCODE_MEDIA_STOP){
+                onStop();
             }
 
-
+            //return super.onMediaButtonEvent(mediaButtonEvent);
             return super.onMediaButtonEvent(mediaButtonEvent);
-
         }
 
         @Override
         public void onPrepare() {
-            super.onPrepare();
+            //super.onPrepare();
             Log.e("jimmy","onPrepare: ");
             try {
                 mPlayingSource = DataSource.get(mQueueIndex).getSourcePath();
@@ -112,7 +118,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         @Override
         public void onPlay() {
             Log.e("jimmy","MediaPlayerService onPlay()");
-            super.onPlay();
+            //super.onPlay();
             try {
                 if (!successfullyRetrievedAudioFocus()) {
                     Log.e("jimmy","retrieve audio focus fail");
@@ -147,12 +153,12 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         @Override
         public void onPause() {
             Log.e("jimmy","MediaPlayerService onPause()");
-            super.onPause();
+            //super.onPause();
 
             if( mMediaPlayer.isPlaying() ) {
                 mMediaPlayer.pause();
                 setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
-                stopForeground(false);
+                //stopForeground(false);
                 showPlayingNotification(DataSource.get(mQueueIndex).getTitle(), DataSource.get(mQueueIndex).getMediaContent(),
                         DataSource.get(mQueueIndex).getLargerIcon(), DataSource.get(mQueueIndex).getSmallIcon());
             }
@@ -210,6 +216,20 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         }
 
         @Override
+        public void onStop() {
+            //super.onStop();
+            Log.e("jimmy","onStop");
+            mMediaPlayer.stop();
+            //setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+            //unregisterReceiver(mNoisyReceiver);
+            mMediaPlayer.reset();
+            //mMediaPlayer.release();
+            stopForeground(true);
+            //stopSelf();
+        }
+
+        @Override
         public void onCustomAction(String action, Bundle extras) {
             Log.e("jimmy","onCustomAction");
             String t = extras.getString("type");
@@ -226,7 +246,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                     } catch (IOException e) {
                         e.printStackTrace();
                         Log.e("jimmy","onPlayFromSearch.error : "+e.toString());
-                        setMediaPlaybackState(PlaybackStateCompat.ERROR_CODE_APP_ERROR);
+                        setMediaPlaybackErrorState(PlaybackStateCompat.ERROR_CODE_APP_ERROR);
                     }
                 }
             }else if(COMMAND_SET_REPEAT.equals(action)){
@@ -240,13 +260,6 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     public void onCreate() {
         super.onCreate();
         Log.e("jimmy","Service onCreate");
-        //default string
-        //mMediaTitle = "Album";
-        //mMediaContent = "Artist";
-        //mSubText = "Song Name";
-        //default Icons
-        //mSmallIcon = R.drawable.ic_stat_image_audiotrack;
-        //mLargeIcon = R.drawable.album_jazz_blues;
         mNotificationMgr = new NotificationMgr(this);
         mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         initMediaPlayer();
@@ -255,7 +268,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     }
 
     private void initNoisyReceiver() {
-        //Handles headphones coming unplugged. cannot be done through a manifest receiver
+        //Handles headphones unplugged.
         IntentFilter filter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         registerReceiver(mNoisyReceiver, filter);
     }
@@ -275,8 +288,10 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         if(mAudioManager != null) mAudioManager.abandonAudioFocus(this);
         unregisterReceiver(mNoisyReceiver);
         mMediaSessionCompat.release();
-        mMediaPlayer.stop();
-        NotificationManagerCompat.from(this).cancel(1);
+        if(mMediaPlayer != null && mMediaPlayer.isPlaying())
+            mMediaPlayer.stop();
+        if(mMediaPlayer != null) mMediaPlayer.release();
+
     }
 
     private void initMediaPlayer() {
@@ -287,7 +302,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
-                Log.e("MediaPlayService","MediaPlayer onPrepared()");
+                Log.e("MediaPlayService","init MediaPlayer ");
                 //change Title / content on activity UI
                 Bundle b = new Bundle();
                 b.putString("title",DataSource.get(mQueueIndex).getTitle());
@@ -303,7 +318,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
-
+                Log.e("jimmy","media onError");
                 return false;
             }
         });
@@ -319,6 +334,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
                 }else {
                     showPlayingNotification("播放完畢", "播放完畢", -1, -1);
                     if(mAudioManager != null) mAudioManager.dispatchMediaKeyEvent(new KeyEvent( KeyEvent.ACTION_DOWN , KEYCODE_MEDIA_PAUSE));
+                    setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
                 }
             }
         });
@@ -348,13 +364,13 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
     private void initMediaSession() {
         Log.e("jimmy","initMediaSession");
 
-        ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
-        mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService", mediaButtonReceiver, null);
-        //mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService");
+        //ComponentName mediaButtonReceiver = new ComponentName(getApplicationContext(), MediaButtonReceiver.class);
+        //mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService", mediaButtonReceiver, null);
+        mMediaSessionCompat = new MediaSessionCompat(getApplicationContext(), "MediaPlayerService");
 
-        mMediaSessionCompat.setFlags( MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-                MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS |
-                MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS );
+        //mMediaSessionCompat.setFlags( MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
+        //        MediaSessionCompat.FLAG_HANDLES_QUEUE_COMMANDS |
+        //        MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS );
 
         mMediaSessionCompat.setCallback(mMediaSessionCallback);
 
@@ -373,8 +389,15 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
         mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
     }
 
+    private void setMediaPlaybackErrorState(int state){
+        PlaybackStateCompat.Builder playbackstateBuilder = new PlaybackStateCompat.Builder();
+
+        //playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
+        playbackstateBuilder.setErrorMessage( state, "");
+        mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
+    }
+
     private boolean successfullyRetrievedAudioFocus() {
-        //AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         int result = mAudioManager.requestAudioFocus(this,
                 AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
@@ -401,6 +424,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Med
 
     @Override
     public void onAudioFocusChange(int focusChange) {
+        Log.e("jimmy","audio focus change: "+focusChange);
         switch( focusChange ) {
             case AudioManager.AUDIOFOCUS_LOSS: {
                 if( mMediaPlayer.isPlaying() ) {

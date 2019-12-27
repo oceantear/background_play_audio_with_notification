@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         public void onExtrasChanged(Bundle extras) {
             super.onExtrasChanged(extras);
             Log.e("jimmy","onExtrasChanged");
-            String tmp = extras.getString("title");
+            //String tmp = extras.getString("title");
             mTitle.setText(extras.getString("title"));
             mContent.setText(extras.getString("content"));
 
@@ -151,11 +151,21 @@ public class MainActivity extends AppCompatActivity {
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
                     break;
                 }
+                case PlaybackStateCompat.STATE_STOPPED :
+                    Log.e("jimmy", "onPlaybackStateChanged  stopped :" + PlaybackStateCompat.STATE_STOPPED);
+                    mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_play_black_24dp));
+                    mContent.setText("播放停止");
+                    break;
+            }
+
+            switch(state.getErrorCode()){
+
                 case PlaybackStateCompat.ERROR_CODE_APP_ERROR:
                     Log.e("jimmy", "onPlaybackStateChanged  error :" + PlaybackStateCompat.ERROR_CODE_APP_ERROR);
                     mContent.setText("內部錯誤，請檢查網路or source正確");
                     break;
             }
+
         }
     };
 
@@ -174,10 +184,10 @@ public class MainActivity extends AppCompatActivity {
         if(mMode.equals("local_music")){
             mTitle.setText(getString(R.string.bt_local_music));
             String path = Environment.getExternalStorageDirectory().toString()+"/Music/";
-            //Log.e("jimmy","path :" +path);
+            Log.e("jimmy","path :" +path);
             File directory = new File(path);
             File[] files = directory.listFiles();
-            //Log.d("Files", "Size: "+ files.length);
+            Log.d("Files", "Size: "+ files.length);
             for (int i = 0; i < files.length; i++) {
                 mRadio.add(path+files[i].getName());
                 Log.e("jimmy", "FileName:" + files[i].getName());
@@ -232,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.e("jimmy", "play/pause click : " + mCurrentState);
-                if (mCurrentState == PlaybackStateCompat.STATE_NONE) {
+                if (mCurrentState == PlaybackStateCompat.STATE_NONE || mCurrentState == PlaybackStateCompat.STATE_STOPPED) {
                     setDataSourceToService();
                     mPlayPauseButton.setBackground(getResources().getDrawable(R.drawable.ic_pause_black_24dp));
                 } else if (mCurrentState == PlaybackStateCompat.STATE_PAUSED) {
@@ -320,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        Log.e("jimmy", "onDestroy");
+        Log.e("jimmy", "Main onDestroy");
         super.onDestroy();
 
         if(mMediaControllerCompat != null) {

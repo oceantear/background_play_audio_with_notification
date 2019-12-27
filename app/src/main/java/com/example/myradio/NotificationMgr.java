@@ -45,6 +45,9 @@ public class NotificationMgr {
     public NotificationMgr(MediaPlayerService service) {
         this.mService = service;
 
+        mNotificationManager =
+                (NotificationManager) mService.getSystemService(Context.NOTIFICATION_SERVICE);
+
         mPlayAction =
                 new NotificationCompat.Action(
                         R.drawable.ic_play_arrow_white_24dp,
@@ -74,7 +77,8 @@ public class NotificationMgr {
                         MediaButtonReceiver.buildMediaButtonPendingIntent(
                                 mService,
                                 PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS));
-
+        //remove notification when service killed and restart by system
+        mNotificationManager.cancelAll();
 
     }
 
@@ -89,7 +93,7 @@ public class NotificationMgr {
         if(largerIcon > 0)
             mLargeIcon = largerIcon;
         else
-            mLargeIcon = mDefaultSmallIcon;
+            mLargeIcon = mDefaultLargeIcon;
         if(smallIcon > 0)
             mSmallIcon = smallIcon;
         else
@@ -101,8 +105,7 @@ public class NotificationMgr {
             creatCh.createChannel();
         }
 
-        mNotificationManager =
-                (NotificationManager) mService.getSystemService(Context.NOTIFICATION_SERVICE);
+
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(mService, creatCh.getChannelId());
         notificationBuilder
@@ -110,9 +113,10 @@ public class NotificationMgr {
                         .setMediaSession(token)
                         .setShowActionsInCompactView(0, 1, 2) //up to 5 action
                         .setShowCancelButton(true)
-                        .setCancelButtonIntent(
-                                MediaButtonReceiver.buildMediaButtonPendingIntent(
-                                        mService, PlaybackStateCompat.ACTION_STOP)))
+                        //.setCancelButtonIntent(
+                        //        MediaButtonReceiver.buildMediaButtonPendingIntent(
+                        //                mService, PlaybackStateCompat.ACTION_STOP)))
+                )
                 .setColor(ContextCompat.getColor(mService, R.color.notification_bg))
                 .setSmallIcon(mSmallIcon)
                 .setLargeIcon(BitmapFactory.decodeResource(mService.getResources(), mLargeIcon))
@@ -124,12 +128,10 @@ public class NotificationMgr {
                 .setContentTitle(mMediaTitle)
                 .setContentText(mMediaContent)
                 .setSubText(mSubText);
-                //.addAction(mPrevAction)
-                //.addAction(mPauseAction)
-                //.addAction(mNextAction)
 
-        //if(status == PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)
-            notificationBuilder.addAction(mPrevAction);
+
+
+        notificationBuilder.addAction(mPrevAction);
 
         if(status == PlaybackStateCompat.STATE_PLAYING) {
             notificationBuilder.addAction(mPlayAction);
@@ -138,13 +140,9 @@ public class NotificationMgr {
         if(status == PlaybackStateCompat.STATE_PAUSED) {
             notificationBuilder.addAction(mPauseAction);
         }
+        notificationBuilder.addAction(mNextAction);
 
-        //if(status == PlaybackStateCompat.ACTION_SKIP_TO_NEXT)
-            notificationBuilder.addAction(mNextAction);
-
-        Notification notification = notificationBuilder.build();
-
-        return notification;
+        return notificationBuilder.build();
     }
 
 
@@ -154,6 +152,10 @@ public class NotificationMgr {
         openUI.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         return PendingIntent.getActivity(
                 mService, REQUEST_CODE, openUI, PendingIntent.FLAG_CANCEL_CURRENT);
+    }
+
+    public void clearNotification(){
+
     }
 
 }
