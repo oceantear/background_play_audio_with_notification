@@ -14,15 +14,16 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.media.MediaBrowserCompat;
 import android.support.v4.media.MediaBrowserServiceCompat;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.text.TextUtils;
 import android.view.KeyEvent;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD;
 import static android.view.KeyEvent.KEYCODE_MEDIA_NEXT;
@@ -115,6 +116,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
         @Override
         public void onSeekTo(long pos) {
             LogUtil.e("jimmy", "onSeekTo");
+            onMSeekTo(pos);
         }
 
         @Override
@@ -157,6 +159,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
                     mDataSource.addAll(tmp);
                     mQueueIndex = 0;
                     mPlayingSource = null;
+                    setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
                     try {
                         if (mMediaPlayer == null)
                             initMediaPlayer();
@@ -164,7 +167,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
                         mMediaSessionCompat.setActive(true);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        LogUtil.e("jimmy", "onPlayFromSearch.error : " + e.toString());
+                        LogUtil.e("jimmy", "onCustomAction Error : " + e.toString());
                         setMediaPlaybackErrorState(PlaybackStateCompat.ERROR_CODE_APP_ERROR);
                     }
                 }
@@ -178,7 +181,9 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
     private void onMPrepare() {
         LogUtil.e("jimmy", "onPrepare: ");
         try {
+
             mPlayingSource = mDataSource.get(mQueueIndex).getSourcePath();
+            mMediaSessionCompat.setMetadata(createMetaData(mDataSource.get(mQueueIndex).getmDuration()));
             mMediaPlayer.reset();
             mMediaPlayer.setDataSource(mPlayingSource);
             mMediaPlayer.prepare();
@@ -257,15 +262,24 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
         onMPlay();
     }
 
+    private void onMSeekTo(long pos){
+
+        mMediaPlayer.seekTo( (int) pos);
+        // set state for report current state to clients
+        setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+    }
+
     private void onMStop() {
 
         LogUtil.e("jimmy", "onStop");
         mMediaPlayer.stop();
-        //setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
-        setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+        setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
         //unregisterReceiver(mNoisyReceiver);
+        showPlayingNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
+                mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
+        mPlayingSource = null;
         mMediaPlayer.reset();
-        stopForeground(true);
+        //stopForeground(true);
     }
 
     @Override
@@ -307,7 +321,7 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setVolume(1.0f, 1.0f);
 
-        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+        /*mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mp) {
                 LogUtil.e("MediaPlayService", "init MediaPlayer ");
@@ -316,12 +330,12 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
                 showPausedNotification(mDataSource.get(mQueueIndex).getTitle(), mDataSource.get(mQueueIndex).getSubTitle(), mDataSource.get(mQueueIndex).getMediaContent(),
                         mDataSource.get(mQueueIndex).getLargerIcon(), mDataSource.get(mQueueIndex).getSmallIcon());
             }
-        });
+        });*/
 
         mMediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
-                LogUtil.e("jimmy", "media onError");
+                LogUtil.e("jimmy", "media onError: "+what);
                 return false;
             }
         });
@@ -330,17 +344,19 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
             @Override
             public void onCompletion(MediaPlayer mp) {
                 LogUtil.e("MediaPlayService", "MediaPlayer onCompletion()");
+                LogUtil.e("jimmy","onCompletion(now position) :"+ mMediaPlayer.getCurrentPosition());
                 if (isRepeat) {
                     LogUtil.i("jimmy", " repeat, play next song");
                     //tricky, simulate media key event
                     if (mAudioManager != null)
                         mAudioManager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KEYCODE_MEDIA_NEXT));
                 } else {
-                    showPlayingNotification(mDataSource.get(mQueueIndex).getTitle() + "(播放完畢)", mDataSource.get(mQueueIndex).getSubTitle() + "(播放完畢)",
-                            mDataSource.get(mQueueIndex).getMediaContent() + "播放完畢", -1, -1);
+                    //showPlayingNotification(mDataSource.get(mQueueIndex).getTitle() + "(播放完畢)", mDataSource.get(mQueueIndex).getSubTitle() + "(播放完畢)",
+                    //        mDataSource.get(mQueueIndex).getMediaContent() + "播放完畢", -1, -1);
                     if (mAudioManager != null)
-                        mAudioManager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KEYCODE_MEDIA_PAUSE));
-                    setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                        mAudioManager.dispatchMediaKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KEYCODE_MEDIA_STOP));
+                    //setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
+                    //setMediaPlaybackState(PlaybackStateCompat.STATE_STOPPED);
                 }
             }
         });
@@ -393,8 +409,20 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
         } else {
             playbackstateBuilder.setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE | PlaybackStateCompat.ACTION_PLAY);
         }
-        playbackstateBuilder.setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 0);
+
+        if(state == PlaybackStateCompat.STATE_PLAYING || state == PlaybackStateCompat.ACTION_PAUSE) {
+            playbackstateBuilder.setState(state, mMediaPlayer.getCurrentPosition(), 1.0f);
+            //for update UI
+            Bundle b = new Bundle();
+            b.putString("mediaContent",mDataSource.get(mQueueIndex).getMediaContent());
+            b.putSerializable("mediaContent",mDataSource.get(mQueueIndex));
+            playbackstateBuilder.setExtras(b);
+        }
+        if(state == PlaybackStateCompat.STATE_STOPPED)
+            playbackstateBuilder.setState(state, mMediaPlayer.getCurrentPosition(), 1.0f);
+
         mMediaSessionCompat.setPlaybackState(playbackstateBuilder.build());
+        LogUtil.e("jimmy","service(now position) :"+ mMediaPlayer.getCurrentPosition());
     }
 
     private void setMediaPlaybackErrorState(int state) {
@@ -410,6 +438,28 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
                 AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
         return result == AudioManager.AUDIOFOCUS_GAIN;
+    }
+
+    //for client UI to update media duration
+    private MediaMetadataCompat createMetaData(long duration){
+
+        return new MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, "By your side")
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Jazz & Blues")
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "Media Right Productions")
+                .putLong(MediaMetadataCompat.METADATA_KEY_DURATION,
+                        TimeUnit.MILLISECONDS.convert(duration, TimeUnit.MILLISECONDS))
+                .putString(MediaMetadataCompat.METADATA_KEY_GENRE, "Jazz")
+                .putString(
+                        MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI,
+                        null)
+                .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI,
+                        null)
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "By your side")
+                .build();
+
+
     }
 
     //is called to gain the authority to access the Media that the MediaBrowserService provides

@@ -19,14 +19,16 @@ public class MediaMetadata implements Serializable {
     private String mSourcePath;
     private int mSmallIcon;
     private int mLargerIcon;
+    private long mDuration;
 
-    public MediaMetadata(String title, String mediaContent, String subTitle, String sourcePath, int smallIcon, int largerIcon) {
+    public MediaMetadata(String title, String mediaContent, String subTitle, String sourcePath, int smallIcon, int largerIcon, long duation) {
         this.mTitle = title;
         this.mMediaContent = mediaContent;
         this.mSubTitle = subTitle;
         this.mSourcePath = sourcePath;
         this.mSmallIcon = smallIcon;
         this.mLargerIcon = largerIcon;
+        this.mDuration = duation;
     }
 
     public String getTitle() {
@@ -76,4 +78,8 @@ public class MediaMetadata implements Serializable {
     public void setLargerIcon(int mLargerIcon) {
         this.mLargerIcon = mLargerIcon;
     }
+
+    public long getmDuration() { return mDuration; }
+
+    public void setmDuration(long mDuration) { this.mDuration = mDuration; }
 }
