@@ -273,7 +273,10 @@ public class MediaPlayerService extends MediaBrowserServiceCompat implements Aud
 
         mMediaPlayer.seekTo( (int) pos);
         // set state for report current state to clients
-        setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        if(mMediaPlayer.isPlaying())
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
+        else
+            setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
     }
 
     private void onMStop() {
