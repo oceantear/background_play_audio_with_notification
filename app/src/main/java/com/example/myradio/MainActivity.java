@@ -5,7 +5,7 @@ import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Environment;
 import android.support.v4.media.MediaMetadataCompat;
-import android.support.v7.app.AppCompatActivity;
+//import android.support.v7.app.AppCompatActivity;
 import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.RemoteException;
@@ -18,6 +18,9 @@ import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;

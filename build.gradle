@@ -18,9 +18,9 @@ allprojects {
     repositories {
         google()
         jcenter()
-        maven {
+        /*maven {
             url "https://maven.google.com"
-        }
+        }*/
         
     }
 

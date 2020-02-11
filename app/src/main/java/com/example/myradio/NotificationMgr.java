@@ -7,11 +7,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Build;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.media.session.MediaButtonReceiver;
+//import android.support.v4.app.NotificationCompat;
+//import android.support.v4.content.ContextCompat;
+//import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+import androidx.media.session.MediaButtonReceiver;
 
 /**
  * Notification style
@@ -114,7 +118,8 @@ public class NotificationMgr {
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(mService, creatCh.getChannelId());
         notificationBuilder
-                .setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
+                //.setStyle(new android.support.v4.media.app.NotificationCompat.MediaStyle()
+                .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                                 .setMediaSession(token)
                                 .setShowActionsInCompactView(0, 1, 2) //up to 5 action
                                 .setShowCancelButton(true)
